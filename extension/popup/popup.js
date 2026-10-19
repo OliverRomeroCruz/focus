@@ -91,6 +91,7 @@ document.addEventListener("DOMContentLoaded", async () => {
   // Actualizar rango de la cabra y modo activo
   function updateRankAndModeUI() {
     chrome.runtime.sendMessage({ action: "getStatsAndRank" }, (res) => {
+      if (chrome.runtime.lastError) return;
       if (!res) return;
       if (statRank && res.rank) {
         statRank.textContent = `${res.rank.icon} ${res.rank.title.replace("Nivel ", "N")}`;
@@ -668,6 +669,7 @@ document.addEventListener("DOMContentLoaded", async () => {
     if (!currentTabDomain) return;
 
     chrome.runtime.sendMessage({ action: "addCurrentSite", domain: currentTabDomain }, (res) => {
+      if (chrome.runtime.lastError) return;
       if (res && res.success) {
         blockCurrentText.textContent = `¡${currentTabDomain} bloqueado!`;
         btnBlockCurrent.style.borderColor = "var(--color-ink)";

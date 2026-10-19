@@ -40,6 +40,7 @@ document.addEventListener("DOMContentLoaded", async () => {
 
   // Cargar Rango de la Cabra
   chrome.runtime.sendMessage({ action: "getStatsAndRank" }, (res) => {
+    if (chrome.runtime.lastError) return;
     if (res && res.rank && blockedGoatRank) {
       blockedGoatRank.textContent = `${res.rank.icon} ${res.rank.title}`;
     }
@@ -103,6 +104,7 @@ document.addEventListener("DOMContentLoaded", async () => {
 
   function syncTimer() {
     chrome.runtime.sendMessage({ action: "getStatus" }, (status) => {
+      if (chrome.runtime.lastError) return;
       if (status && status.isPaused) {
         remainingMs = status.remainingMs;
         timerModeEl.textContent = "Sesión pausada (Tiempo detenido)";
@@ -275,7 +277,9 @@ document.addEventListener("DOMContentLoaded", async () => {
 
   btnConfirmEmergency.addEventListener("click", () => {
     chrome.runtime.sendMessage({ action: "stopSession" }, () => {
+      if (chrome.runtime.lastError) {}
       chrome.runtime.sendMessage({ action: "toggleMaster" }, () => {
+        if (chrome.runtime.lastError) {}
         if (targetUrl) {
           window.location.href = targetUrl;
         } else {

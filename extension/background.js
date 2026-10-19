@@ -414,9 +414,9 @@ async function unblockExistingBlockedTabs() {
           const parsed = new URL(tab.url);
           const target = parsed.searchParams.get("target");
           if (target && (target.startsWith("http://") || target.startsWith("https://"))) {
-            chrome.tabs.update(tab.id, { url: target });
+            chrome.tabs.update(tab.id, { url: target }).catch(() => {});
           } else {
-            chrome.tabs.update(tab.id, { url: "https://www.google.com" });
+            chrome.tabs.update(tab.id, { url: "https://www.google.com" }).catch(() => {});
           }
         } catch (e) {}
       }
@@ -577,7 +577,7 @@ async function unblockTabsNoLongerBlocked() {
           if (target && (target.startsWith("http://") || target.startsWith("https://"))) {
             const check = await checkUrlBlocked(target);
             if (!check.isBlocked) {
-              chrome.tabs.update(tab.id, { url: target });
+              chrome.tabs.update(tab.id, { url: target }).catch(() => {});
             }
           }
         } catch (e) {}
@@ -620,7 +620,7 @@ chrome.tabs.onUpdated.addListener(async (tabId, changeInfo, tab) => {
     const isStrict = data.isPro && data.strictMode;
     const remainingMs = status.remainingMs || 0;
     const redirectUrl = `${blockPagePrefix}?target=${encodeURIComponent(urlToInspect)}&reason=${encodeURIComponent(check.reason)}&remainingMs=${remainingMs}&strict=${isStrict ? "1" : "0"}&isPro=${data.isPro ? "1" : "0"}`;
-    chrome.tabs.update(tabId, { url: redirectUrl });
+    chrome.tabs.update(tabId, { url: redirectUrl }).catch(() => {});
   }
 });
 
@@ -934,6 +934,8 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
     });
     return true;
   }
+
+  return false;
 });
 
 // Desbloquear pestañas de forma reactiva cuando cambie la lista de bloqueo o el perfil en almacenamiento

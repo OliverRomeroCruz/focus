@@ -197,5 +197,16 @@
     }
   });
 
+  // Suprimir error "Navigation rejected" emitido por el router interno de YouTube al redirigir
+  window.addEventListener("unhandledrejection", (event) => {
+    if (event && event.reason) {
+      const msg = event.reason.message || String(event.reason);
+      if (msg.includes("Navigation rejected") || msg.includes("navigation rejected")) {
+        event.preventDefault();
+        event.stopPropagation();
+      }
+    }
+  });
+
   checkState();
 })();

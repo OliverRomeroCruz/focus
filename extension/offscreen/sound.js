@@ -45,10 +45,12 @@ async function playChime() {
 }
 
 chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
-  if (request.action === "playFinishChime") {
+  if (request && request.action === "playFinishChime") {
     playChime();
     sendResponse({ played: true });
+    return true;
   }
+  return false;
 });
 
 // Reproducir automáticamente nada más abrir el documento offscreen

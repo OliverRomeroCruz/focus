@@ -297,6 +297,7 @@ document.addEventListener("DOMContentLoaded", async () => {
   // Rango GOAT y Gráfico Semanal
   function renderStatsAndRank() {
     chrome.runtime.sendMessage({ action: "getStatsAndRank" }, (res) => {
+      if (chrome.runtime.lastError) return;
       if (!res) return;
       const stats = res.stats || {};
       const rank = res.rank || { level: 1, title: "Cabra Novata", icon: "🐐", badge: "PRINCIPIANTE", nextMinutes: 120, prevMinutes: 0 };
