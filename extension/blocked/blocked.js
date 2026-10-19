@@ -164,6 +164,19 @@ document.addEventListener("DOMContentLoaded", async () => {
 
   syncTimer();
 
+  // Desbloqueo reactivo instantáneo cuando finaliza la sesión en storage
+  chrome.storage.onChanged.addListener((changes, area) => {
+    if (area === "local") {
+      if (changes.sessionActive && changes.sessionActive.newValue === false) {
+        timerDisplayEl.textContent = "00:00:00";
+        timerModeEl.textContent = "Sesión finalizada. Desbloqueado.";
+        if (targetUrl) {
+          window.location.href = targetUrl;
+        }
+      }
+    }
+  });
+
   timerInterval = setInterval(() => {
     if (remainingMs > 1000) {
       remainingMs -= 1000;

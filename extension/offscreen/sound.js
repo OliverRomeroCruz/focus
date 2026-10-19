@@ -4,11 +4,14 @@
  * Suena nítido, elegante y sin distorsión aún con el navegador minimizado.
  */
 
-function playChime() {
+async function playChime() {
   try {
-    const AudioContext = window.AudioContext || window.webkitAudioContext;
-    if (!AudioContext) return;
-    const ctx = new AudioContext();
+    const AudioCtxClass = window.AudioContext || window.webkitAudioContext;
+    if (!AudioCtxClass) return;
+    const ctx = new AudioCtxClass();
+    if (ctx.state === "suspended") {
+      await ctx.resume();
+    }
 
     // Acorde armónico ascendente de victoria / campana de estudio
     // D5 (587.33Hz) -> A5 (880.00Hz) -> D6 (1174.66Hz)
@@ -27,7 +30,7 @@ function playChime() {
 
       // Envolvente de volumen suave: ataque rápido y decaimiento exponencial natural
       gain.gain.setValueAtTime(0.001, ctx.currentTime + note.start);
-      gain.gain.exponentialRampToValueAtTime(0.25, ctx.currentTime + note.start + 0.03);
+      gain.gain.exponentialRampToValueAtTime(0.3, ctx.currentTime + note.start + 0.03);
       gain.gain.exponentialRampToValueAtTime(0.0001, ctx.currentTime + note.start + note.dur);
 
       osc.connect(gain);
@@ -37,7 +40,7 @@ function playChime() {
       osc.stop(ctx.currentTime + note.start + note.dur);
     });
   } catch (e) {
-    console.warn("Error playing chime:", e);
+    console.warn("Error playing chime in offscreen:", e);
   }
 }
 
@@ -47,3 +50,6 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
     sendResponse({ played: true });
   }
 });
+
+// Reproducir automáticamente nada más abrir el documento offscreen
+playChime();

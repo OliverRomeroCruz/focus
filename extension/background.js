@@ -31,7 +31,7 @@ const DEFAULT_ROUTINES = [
     days: [1, 2, 3, 4, 5],
     startTime: "16:00",
     endTime: "20:30",
-    enabled: true
+    enabled: false
   }
 ];
 
@@ -86,7 +86,20 @@ chrome.runtime.onInstalled.addListener(async () => {
   if (!data.whitelistSites) updates.whitelistSites = DEFAULT_WHITELIST_SITES;
   if (data.blockMode === undefined) updates.blockMode = "blacklist";
   if (data.blockYoutubeShorts === undefined) updates.blockYoutubeShorts = false;
-  if (!data.routines) updates.routines = DEFAULT_ROUTINES;
+  if (!data.routines) {
+    updates.routines = DEFAULT_ROUTINES;
+  } else if (Array.isArray(data.routines)) {
+    // Desactivar la rutina de muestra para no bloquear la navegación por defecto
+    let modifiedRoutines = false;
+    const cleanRoutines = data.routines.map(r => {
+      if (r.id === "routine_weekdays" && !data.userConfiguredRoutines && r.enabled) {
+        modifiedRoutines = true;
+        return { ...r, enabled: false };
+      }
+      return r;
+    });
+    if (modifiedRoutines) updates.routines = cleanRoutines;
+  }
   if (!data.quotes) updates.quotes = DEFAULT_QUOTES;
   if (data.sessionActive === undefined) updates.sessionActive = false;
   if (data.sessionEndTime === undefined) updates.sessionEndTime = 0;
@@ -131,7 +144,19 @@ chrome.runtime.onInstalled.addListener(async () => {
 
 // Comprobación al arrancar el navegador
 chrome.runtime.onStartup.addListener(async () => {
-  const data = await chrome.storage.local.get(["sessionActive", "sessionPaused", "sessionEndTime"]);
+  const data = await chrome.storage.local.get(["sessionActive", "sessionPaused", "sessionEndTime", "routines", "userConfiguredRoutines"]);
+  if (data.routines && Array.isArray(data.routines)) {
+    let modified = false;
+    const cleanRoutines = data.routines.map(r => {
+      if (r.id === "routine_weekdays" && !data.userConfiguredRoutines && r.enabled) {
+        modified = true;
+        return { ...r, enabled: false };
+      }
+      return r;
+    });
+    if (modified) await chrome.storage.local.set({ routines: cleanRoutines });
+  }
+
   if (data.sessionActive && !data.sessionPaused) {
     if (data.sessionEndTime > 0 && data.sessionEndTime <= Date.now()) {
       await handleSessionCompleted();
@@ -140,6 +165,23 @@ chrome.runtime.onStartup.addListener(async () => {
     }
   }
   updateBadgeState();
+});
+
+// Limpieza inmediata de rutina de muestra al arrancar el service worker
+chrome.storage.local.get(["routines", "userConfiguredRoutines"], (data) => {
+  if (data && data.routines && Array.isArray(data.routines)) {
+    let changed = false;
+    const clean = data.routines.map(r => {
+      if (r.id === "routine_weekdays" && !data.userConfiguredRoutines && r.enabled) {
+        changed = true;
+        return { ...r, enabled: false };
+      }
+      return r;
+    });
+    if (changed) {
+      chrome.storage.local.set({ routines: clean });
+    }
+  }
 });
 
 // Comprobar si una rutina horaria está activa
@@ -229,6 +271,15 @@ async function getFocusStatus() {
   } else if (data.sessionActive && !data.sessionPaused && data.sessionEndTime > 0 && data.sessionEndTime <= now) {
     // Sesión finalizada con éxito: registrar estadísticas, alerta sonoro-visual y desbloqueo
     await handleSessionCompleted();
+    return {
+      isActive: false,
+      isPaused: false,
+      reason: "idle",
+      remainingMs: 0,
+      isPro,
+      strictMode,
+      studyStats: data.studyStats
+    };
   }
 
   // 2. Rutina programada
@@ -292,7 +343,7 @@ async function recordCompletedSession(minutes) {
 }
 
 // Alerta de finalización de concentración: Notificación de escritorio + Sonido nítido
-let isCompletingSession = false;
+let lastCompletedAlertTime = 0;
 
 async function triggerFinishAlert() {
   showDesktopNotification();
@@ -308,6 +359,10 @@ function showDesktopNotification() {
       message: "¡Gran trabajo de concentración! Sitios desbloqueados, ya puedes entrar donde quieras.",
       priority: 2,
       requireInteraction: false
+    }, (notifId) => {
+      if (chrome.runtime.lastError) {
+        console.warn("Notification info:", chrome.runtime.lastError);
+      }
     });
   } catch (e) {
     console.warn("Error mostrando notificación de escritorio:", e);
@@ -316,16 +371,20 @@ function showDesktopNotification() {
 
 async function playFinishSound() {
   try {
+    const offscreenUrl = chrome.runtime.getURL("offscreen/sound.html");
     let hasOffscreen = false;
     if (chrome.runtime.getContexts) {
-      const contexts = await chrome.runtime.getContexts({ contextTypes: ["OFFSCREEN_DOCUMENT"] });
+      const contexts = await chrome.runtime.getContexts({ 
+        contextTypes: ["OFFSCREEN_DOCUMENT"],
+        documentUrls: [offscreenUrl]
+      });
       hasOffscreen = contexts && contexts.length > 0;
     }
 
     if (!hasOffscreen) {
       try {
         await chrome.offscreen.createDocument({
-          url: "offscreen/sound.html",
+          url: offscreenUrl,
           reasons: ["AUDIO_PLAYBACK"],
           justification: "Reproducir sonido de campana al finalizar concentración"
         });
@@ -363,6 +422,8 @@ async function unblockExistingBlockedTabs() {
           const target = parsed.searchParams.get("target");
           if (target && (target.startsWith("http://") || target.startsWith("https://"))) {
             chrome.tabs.update(tab.id, { url: target });
+          } else {
+            chrome.tabs.update(tab.id, { url: "https://www.google.com" });
           }
         } catch (e) {}
       }
@@ -372,18 +433,16 @@ async function unblockExistingBlockedTabs() {
 
 // Manejador maestro de sesión terminada
 async function handleSessionCompleted() {
-  if (isCompletingSession) return;
-  isCompletingSession = true;
+  const now = Date.now();
+  if (now - lastCompletedAlertTime < 3000) return;
+  lastCompletedAlertTime = now;
 
   try {
     const data = await chrome.storage.local.get(["sessionDurationMins", "sessionActive"]);
-    if (!data.sessionActive) {
-      isCompletingSession = false;
-      return;
+    if (data.sessionActive) {
+      const durationMins = data.sessionDurationMins || 25;
+      await recordCompletedSession(durationMins);
     }
-
-    const durationMins = data.sessionDurationMins || 25;
-    await recordCompletedSession(durationMins);
 
     await chrome.storage.local.set({
       sessionActive: false,
@@ -403,8 +462,6 @@ async function handleSessionCompleted() {
     unblockExistingBlockedTabs();
   } catch (err) {
     console.error("Error al finalizar sesión:", err);
-  } finally {
-    isCompletingSession = false;
   }
 }
 

@@ -113,6 +113,44 @@ document.addEventListener("DOMContentLoaded", async () => {
     }
   }
 
+  // Reproducir campana armónica nítida directamente en el popup
+  function playPopupChime() {
+    try {
+      const AudioCtxClass = window.AudioContext || window.webkitAudioContext;
+      if (!AudioCtxClass) return;
+      const ctx = new AudioCtxClass();
+      if (ctx.state === "suspended") {
+        ctx.resume();
+      }
+
+      const notes = [
+        { freq: 587.33, start: 0, dur: 0.9 },
+        { freq: 880.00, start: 0.16, dur: 1.1 },
+        { freq: 1174.66, start: 0.36, dur: 1.6 }
+      ];
+
+      notes.forEach(note => {
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+
+        osc.type = "sine";
+        osc.frequency.setValueAtTime(note.freq, ctx.currentTime + note.start);
+
+        gain.gain.setValueAtTime(0.001, ctx.currentTime + note.start);
+        gain.gain.exponentialRampToValueAtTime(0.3, ctx.currentTime + note.start + 0.03);
+        gain.gain.exponentialRampToValueAtTime(0.0001, ctx.currentTime + note.start + note.dur);
+
+        osc.connect(gain);
+        gain.connect(ctx.destination);
+
+        osc.start(ctx.currentTime + note.start);
+        osc.stop(ctx.currentTime + note.start + note.dur);
+      });
+    } catch (e) {
+      console.warn("Error playing chime in popup:", e);
+    }
+  }
+
   // Iniciar intervalo de cuenta atrás
   function startCountdownTicker() {
     stopCountdownTicker();
@@ -136,6 +174,7 @@ document.addEventListener("DOMContentLoaded", async () => {
   // Finalizar sesión cuando llega a 0
   async function finishSession() {
     stopCountdownTicker();
+    remainingMs = 0;
     statusPanel.classList.remove("is-active", "is-paused");
     statusTitle.textContent = "¡SESIÓN COMPLETADA!";
     popupCountdown.textContent = "00:00:00";
@@ -143,9 +182,21 @@ document.addEventListener("DOMContentLoaded", async () => {
     btnPauseSession.classList.add("hidden");
     btnStopSession.classList.add("hidden");
 
+    // Reproducir sonido inmediato en el popup
+    playPopupChime();
+
     try {
       chrome.alarms.clear("session_timer_finish");
     } catch (e) {}
+
+    await chrome.storage.local.set({
+      sessionActive: false,
+      sessionPaused: false,
+      sessionRemainingMs: 0,
+      sessionPausedMs: 0,
+      sessionEndTime: 0,
+      sessionDurationMins: 0
+    });
 
     chrome.runtime.sendMessage({ action: "sessionFinished" });
   }
@@ -234,19 +285,24 @@ document.addEventListener("DOMContentLoaded", async () => {
 
     // CASO B: Sesión Activa contando
     const now = Date.now();
-    if (isEnabled && data.sessionActive && data.sessionEndTime && data.sessionEndTime > now) {
-      remainingMs = data.sessionEndTime - now;
-      statusPanel.classList.add("is-active");
-      statusPanel.classList.remove("is-paused");
-      statusTitle.textContent = "SESIÓN DE ESTUDIO ACTIVA";
-      popupCountdown.textContent = formatTime(remainingMs);
-      statusDesc.textContent = "Sitios distractores bloqueados.";
-      btnPauseSession.classList.remove("hidden");
-      btnPauseSession.textContent = "⏸ Pausar tiempo";
-      btnPauseSession.classList.remove("is-paused");
-      btnStopSession.classList.remove("hidden");
-      startCountdownTicker();
-      return;
+    if (isEnabled && data.sessionActive && data.sessionEndTime) {
+      if (data.sessionEndTime > now) {
+        remainingMs = data.sessionEndTime - now;
+        statusPanel.classList.add("is-active");
+        statusPanel.classList.remove("is-paused");
+        statusTitle.textContent = "SESIÓN DE ESTUDIO ACTIVA";
+        popupCountdown.textContent = formatTime(remainingMs);
+        statusDesc.textContent = "Sitios distractores bloqueados.";
+        btnPauseSession.classList.remove("hidden");
+        btnPauseSession.textContent = "⏸ Pausar tiempo";
+        btnPauseSession.classList.remove("is-paused");
+        btnStopSession.classList.remove("hidden");
+        startCountdownTicker();
+        return;
+      } else {
+        finishSession();
+        return;
+      }
     }
 
     // CASO C: Inactivo
