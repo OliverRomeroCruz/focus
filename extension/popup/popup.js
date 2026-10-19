@@ -219,7 +219,25 @@ document.addEventListener("DOMContentLoaded", async () => {
   }
 
   if (btnOpenUpgrade) btnOpenUpgrade.addEventListener("click", openUpgradeModal);
-  if (btnCloseUpgrade) btnCloseUpgrade.addEventListener("click", closeUpgradeModal);
+  if (btnCloseUpgrade) btnCloseUpgrade.addEventListener("click", (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    closeUpgradeModal();
+  });
+
+  if (upgradeModal) {
+    upgradeModal.addEventListener("click", (e) => {
+      if (e.target === upgradeModal) {
+        closeUpgradeModal();
+      }
+    });
+  }
+
+  document.addEventListener("keydown", (e) => {
+    if (e.key === "Escape") {
+      closeUpgradeModal();
+    }
+  });
 
   // Activación de Clave de Licencia PRO
   if (btnActivateKey) {

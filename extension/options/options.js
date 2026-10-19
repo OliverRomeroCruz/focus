@@ -107,8 +107,26 @@ document.addEventListener("DOMContentLoaded", async () => {
     }
   }
 
-  btnOptionsUpgrade.addEventListener("click", openOptModal);
-  btnCloseOptModal.addEventListener("click", closeOptModal);
+  if (btnOptionsUpgrade) btnOptionsUpgrade.addEventListener("click", openOptModal);
+  if (btnCloseOptModal) btnCloseOptModal.addEventListener("click", (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    closeOptModal();
+  });
+
+  if (optionsUpgradeModal) {
+    optionsUpgradeModal.addEventListener("click", (e) => {
+      if (e.target === optionsUpgradeModal) {
+        closeOptModal();
+      }
+    });
+  }
+
+  document.addEventListener("keydown", (e) => {
+    if (e.key === "Escape") {
+      closeOptModal();
+    }
+  });
 
   // Activación de Licencia desde la tarjeta principal
   btnOptActivate.addEventListener("click", () => {
