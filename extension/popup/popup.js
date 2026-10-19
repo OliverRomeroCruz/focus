@@ -66,16 +66,34 @@ document.addEventListener("DOMContentLoaded", async () => {
   // Aplicar apariencia visual PRO de forma inmediata
   function applyProUI(isPro) {
     isUserPro = isPro;
+    const exactTimeRow = document.getElementById("exactTimeRow");
+    const badgeExactPro = document.getElementById("badgeExactPro");
+
     if (isPro) {
       planBadge.textContent = "👑 PRO";
       planBadge.classList.add("is-pro");
       if (proBanner) proBanner.style.display = "none";
+      if (exactTimeRow) exactTimeRow.classList.remove("is-locked-pro");
+      if (customHoursInput) customHoursInput.disabled = false;
+      if (customMinsInput) customMinsInput.disabled = false;
+      if (badgeExactPro) {
+        badgeExactPro.textContent = "👑 PRO ACTIVO";
+        badgeExactPro.classList.add("active");
+      }
       closeUpgradeModal();
     } else {
       planBadge.textContent = "FREE";
       planBadge.classList.remove("is-pro");
       if (proBanner) proBanner.style.display = "flex";
+      if (exactTimeRow) exactTimeRow.classList.add("is-locked-pro");
+      if (customHoursInput) customHoursInput.disabled = true;
+      if (customMinsInput) customMinsInput.disabled = true;
+      if (badgeExactPro) {
+        badgeExactPro.textContent = "👑 SOLO PRO";
+        badgeExactPro.classList.remove("active");
+      }
     }
+    updateCustomButtonText();
     updateRankAndModeUI();
   }
 
@@ -609,8 +627,13 @@ document.addEventListener("DOMContentLoaded", async () => {
     });
   });
 
-  // Selector de Tiempo Exacto (Horas y Minutos)
+  // Selector de Tiempo Exacto (Horas y Minutos) — Exclusivo PRO
   function updateCustomButtonText() {
+    if (!isUserPro) {
+      btnCustomStart.innerHTML = `<span>👑 Tiempo Exacto PRO</span>`;
+      btnCustomStart.disabled = false;
+      return;
+    }
     const hours = parseInt(customHoursInput ? customHoursInput.value : 0, 10) || 0;
     const mins = parseInt(customMinsInput ? customMinsInput.value : 0, 10) || 0;
     const total = hours * 60 + mins;
@@ -633,7 +656,22 @@ document.addEventListener("DOMContentLoaded", async () => {
   if (customMinsInput) customMinsInput.addEventListener("input", updateCustomButtonText);
   updateCustomButtonText();
 
-  btnCustomStart.addEventListener("click", () => {
+  const exactTimeRow = document.getElementById("exactTimeRow");
+  if (exactTimeRow) {
+    exactTimeRow.addEventListener("click", (e) => {
+      if (!isUserPro) {
+        e.preventDefault();
+        openUpgradeModal();
+      }
+    });
+  }
+
+  btnCustomStart.addEventListener("click", (e) => {
+    if (!isUserPro) {
+      e.preventDefault();
+      openUpgradeModal();
+      return;
+    }
     const hours = parseInt(customHoursInput ? customHoursInput.value : 0, 10) || 0;
     const mins = parseInt(customMinsInput ? customMinsInput.value : 0, 10) || 0;
     const total = hours * 60 + mins;

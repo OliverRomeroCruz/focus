@@ -29,15 +29,9 @@ document.addEventListener("DOMContentLoaded", async () => {
   const btnDeactivatePro = document.getElementById("btnDeactivatePro");
   const toggleStrictMode = document.getElementById("toggleStrictMode");
   const toggleYoutubeShorts = document.getElementById("toggleYoutubeShorts");
-  const toggleSoundAlert = document.getElementById("toggleSoundAlert");
-  const btnTestSound = document.getElementById("btnTestSound");
-  const toggleNotifications = document.getElementById("toggleNotifications");
   const toggleMentalChallenge = document.getElementById("toggleMentalChallenge");
   const toggleCleanSweep = document.getElementById("toggleCleanSweep");
   const toggleFastRedirect = document.getElementById("toggleFastRedirect");
-  const tabProfileMax = document.getElementById("tabProfileMax");
-  const tabProfileWork = document.getElementById("tabProfileWork");
-  const tabProfileSocial = document.getElementById("tabProfileSocial");
   const optLicenseInput = document.getElementById("optLicenseInput");
   const btnOptActivate = document.getElementById("btnOptActivate");
   const optLicenseFeedback = document.getElementById("optLicenseFeedback");
@@ -124,7 +118,7 @@ document.addEventListener("DOMContentLoaded", async () => {
     if (isPro) {
       planTag.textContent = "👑 PLAN PRO ACTIVO";
       planTag.classList.add("is-pro");
-      if (proSubtitle) proSubtitle.textContent = "¡Eres PRO! Tienes desbloqueados los perfiles de concentración, reto mental antiprocrastinación, clean sweep y sitios ilimitados.";
+      if (proSubtitle) proSubtitle.textContent = "¡Eres PRO! Puedes activar o desactivar libremente cualquiera de las herramientas avanzadas de blindaje.";
 
       // Ocultar botón de compra y formulario de cupón
       if (btnOptionsUpgrade) btnOptionsUpgrade.classList.add("hidden");
@@ -134,10 +128,14 @@ document.addEventListener("DOMContentLoaded", async () => {
         btnDeactivatePro.classList.remove("hidden");
         btnDeactivatePro.textContent = "Volver al plan Free / Desactivar PRO";
       }
+
+      document.querySelectorAll(".pro-setting-item:not(.license-item)").forEach((item) => {
+        item.classList.remove("is-locked");
+      });
     } else {
       planTag.textContent = "PLAN GRATUITO";
       planTag.classList.remove("is-pro");
-      if (proSubtitle) proSubtitle.textContent = "Desbloquea perfiles temáticos, reto mental en popup, cierre automático Clean Sweep y sitios ilimitados.";
+      if (proSubtitle) proSubtitle.textContent = "Las siguientes 5 herramientas de blindaje requieren Focus Goat PRO para poder activarse:";
 
       // Mostrar botón de compra y formulario de cupón
       if (btnOptionsUpgrade) {
@@ -149,32 +147,17 @@ document.addEventListener("DOMContentLoaded", async () => {
       if (proLicenseSection) proLicenseSection.classList.remove("hidden");
       if (proActiveBanner) proActiveBanner.classList.add("hidden");
       if (btnDeactivatePro) btnDeactivatePro.classList.add("hidden");
-    }
 
-    if (toggleStrictMode) toggleStrictMode.checked = isPro && strictMode;
-    if (toggleYoutubeShorts) toggleYoutubeShorts.checked = isPro && blockYoutubeShorts;
-    if (toggleSoundAlert) toggleSoundAlert.checked = soundAlert;
-    if (toggleNotifications) toggleNotifications.checked = desktopNotifications;
-    if (toggleMentalChallenge) toggleMentalChallenge.checked = isPro ? mentalChallenge : false;
-    if (toggleFastRedirect) toggleFastRedirect.checked = fastRedirect;
-
-    if (toggleStrictMode) toggleStrictMode.checked = isPro && strictMode;
-    if (toggleYoutubeShorts) toggleYoutubeShorts.checked = isPro && blockYoutubeShorts;
-    if (toggleCleanSweep) toggleCleanSweep.checked = isPro && cleanSweep;
-    if (toggleSoundAlert) toggleSoundAlert.checked = soundAlert;
-    if (toggleNotifications) toggleNotifications.checked = desktopNotifications;
-    if (toggleMentalChallenge) toggleMentalChallenge.checked = isPro ? mentalChallenge : false;
-    if (toggleFastRedirect) toggleFastRedirect.checked = fastRedirect;
-
-    if (tabProfileMax && tabProfileWork && tabProfileSocial) {
-      [tabProfileMax, tabProfileWork, tabProfileSocial].forEach((t) => {
-        if (t.dataset.profile === activeProfile) {
-          t.classList.add("active");
-        } else {
-          t.classList.remove("active");
-        }
+      document.querySelectorAll(".pro-setting-item:not(.license-item)").forEach((item) => {
+        item.classList.add("is-locked");
       });
     }
+
+    if (toggleStrictMode) toggleStrictMode.checked = isPro && strictMode;
+    if (toggleYoutubeShorts) toggleYoutubeShorts.checked = isPro && blockYoutubeShorts;
+    if (toggleMentalChallenge) toggleMentalChallenge.checked = isPro && mentalChallenge;
+    if (toggleCleanSweep) toggleCleanSweep.checked = isPro && cleanSweep;
+    if (toggleFastRedirect) toggleFastRedirect.checked = isPro && fastRedirect;
 
     renderSites();
     renderRoutines();
@@ -204,23 +187,37 @@ document.addEventListener("DOMContentLoaded", async () => {
   }
 
   // Activar Modo Estricto
-  if (toggleStrictMode) {
-    toggleStrictMode.addEventListener("change", async () => {
+  // Interceptar clics en opciones PRO si el usuario no es PRO
+  document.querySelectorAll(".pro-setting-item:not(.license-item)").forEach((item) => {
+    item.addEventListener("click", (e) => {
       if (!isPro) {
+        e.preventDefault();
+        const sw = item.querySelector("input[type=checkbox]");
+        if (sw) sw.checked = false;
+        openOptModal();
+      }
+    });
+  });
+
+  // 1. Modo Estricto Infranqueable (PRO)
+  if (toggleStrictMode) {
+    toggleStrictMode.addEventListener("change", async (e) => {
+      if (!isPro) {
+        e.preventDefault();
         toggleStrictMode.checked = false;
         openOptModal();
         return;
       }
-
       strictMode = toggleStrictMode.checked;
       await chrome.storage.local.set({ strictMode });
     });
   }
 
-  // Activar Bloqueador de YouTube Shorts
+  // 2. Bloquear YouTube Shorts (PRO)
   if (toggleYoutubeShorts) {
-    toggleYoutubeShorts.addEventListener("change", async () => {
+    toggleYoutubeShorts.addEventListener("change", async (e) => {
       if (!isPro) {
+        e.preventDefault();
         toggleYoutubeShorts.checked = false;
         openOptModal();
         return;
@@ -231,76 +228,11 @@ document.addEventListener("DOMContentLoaded", async () => {
     });
   }
 
-  // Reproducir campana armónica de prueba
-  function playOptionsChime() {
-    try {
-      const AudioCtxClass = window.AudioContext || window.webkitAudioContext;
-      if (!AudioCtxClass) return;
-      const ctx = new AudioCtxClass();
-      if (ctx.state === "suspended") ctx.resume();
-
-      const notes = [
-        { freq: 587.33, start: 0, dur: 0.9 },
-        { freq: 880.00, start: 0.16, dur: 1.1 },
-        { freq: 1174.66, start: 0.36, dur: 1.6 }
-      ];
-
-      notes.forEach((note) => {
-        const osc = ctx.createOscillator();
-        const gain = ctx.createGain();
-        osc.type = "sine";
-        osc.frequency.setValueAtTime(note.freq, ctx.currentTime + note.start);
-        gain.gain.setValueAtTime(0.001, ctx.currentTime + note.start);
-        gain.gain.exponentialRampToValueAtTime(0.35, ctx.currentTime + note.start + 0.03);
-        gain.gain.exponentialRampToValueAtTime(0.0001, ctx.currentTime + note.start + note.dur);
-        osc.connect(gain);
-        gain.connect(ctx.destination);
-        osc.start(ctx.currentTime + note.start);
-        osc.stop(ctx.currentTime + note.start + note.dur);
-      });
-    } catch (e) {
-      console.warn("Error playing chime in options:", e);
-    }
-  }
-
-  // Botón de prueba de sonido de campana
-  if (btnTestSound) {
-    btnTestSound.addEventListener("click", () => {
-      playOptionsChime();
-      chrome.runtime.sendMessage({ action: "testFinishSound" }, () => {
-        if (chrome.runtime.lastError) {}
-      });
-      btnTestSound.textContent = "🔔 ¡Sonando!";
-      btnTestSound.style.borderColor = "var(--color-coral)";
-      btnTestSound.style.color = "var(--color-coral)";
-      setTimeout(() => {
-        btnTestSound.textContent = "🔊 Probar sonido";
-        btnTestSound.style.borderColor = "";
-        btnTestSound.style.color = "";
-      }, 1800);
-    });
-  }
-
-  // Activar/desactivar Campana Sonora (Disponible para todos: Free & PRO)
-  if (toggleSoundAlert) {
-    toggleSoundAlert.addEventListener("change", async () => {
-      soundAlert = toggleSoundAlert.checked;
-      await chrome.storage.local.set({ soundAlert });
-    });
-  }
-
-  // Activar/desactivar Notificaciones Nativas
-  if (toggleNotifications) {
-    toggleNotifications.addEventListener("change", async () => {
-      desktopNotifications = toggleNotifications.checked;
-      await chrome.storage.local.set({ desktopNotifications });
-    });
-  }
-
-  // Activar/desactivar Reto Mental (PRO)
+  // 3. Reto Mental en Desbloqueo y Mini Pantalla (PRO)
   if (toggleMentalChallenge) {
-    toggleMentalChallenge.addEventListener("change", async () => {
+    toggleMentalChallenge.addEventListener("change", async (e) => {
       if (!isPro) {
+        e.preventDefault();
         toggleMentalChallenge.checked = false;
         openOptModal();
         return;
@@ -310,18 +242,11 @@ document.addEventListener("DOMContentLoaded", async () => {
     });
   }
 
-  // Activar/desactivar Blindaje Inmediato
-  if (toggleFastRedirect) {
-    toggleFastRedirect.addEventListener("change", async () => {
-      fastRedirect = toggleFastRedirect.checked;
-      await chrome.storage.local.set({ fastRedirect });
-    });
-  }
-
-  // Activar/desactivar Clean Sweep PRO
+  // 4. Cierre Automático de Pestañas Clean Sweep (PRO)
   if (toggleCleanSweep) {
-    toggleCleanSweep.addEventListener("change", async () => {
+    toggleCleanSweep.addEventListener("change", async (e) => {
       if (!isPro) {
+        e.preventDefault();
         toggleCleanSweep.checked = false;
         openOptModal();
         return;
@@ -331,30 +256,19 @@ document.addEventListener("DOMContentLoaded", async () => {
     });
   }
 
-  // Selector de Perfiles de Concentración Temáticos (PRO)
-  function selectProfile(profileId) {
-    if (!isPro) {
-      openOptModal();
-      return;
-    }
-    activeProfile = profileId;
-    chrome.storage.local.set({ activeProfile });
-    [tabProfileMax, tabProfileWork, tabProfileSocial].forEach((t) => {
-      if (!t) return;
-      if (t.dataset.profile === profileId) {
-        t.classList.add("active");
-      } else {
-        t.classList.remove("active");
+  // 5. Blindaje Inmediato (PRO)
+  if (toggleFastRedirect) {
+    toggleFastRedirect.addEventListener("change", async (e) => {
+      if (!isPro) {
+        e.preventDefault();
+        toggleFastRedirect.checked = false;
+        openOptModal();
+        return;
       }
-    });
-    chrome.runtime.sendMessage({ action: "profileChanged", profile: profileId }, () => {
-      if (chrome.runtime.lastError) {}
+      fastRedirect = toggleFastRedirect.checked;
+      await chrome.storage.local.set({ fastRedirect });
     });
   }
-
-  if (tabProfileMax) tabProfileMax.addEventListener("click", () => selectProfile("max"));
-  if (tabProfileWork) tabProfileWork.addEventListener("click", () => selectProfile("work"));
-  if (tabProfileSocial) tabProfileSocial.addEventListener("click", () => selectProfile("social"));
 
   // Rango GOAT y Gráfico Semanal
   function renderStatsAndRank() {

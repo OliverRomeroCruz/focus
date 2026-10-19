@@ -294,7 +294,25 @@ input:checked + .slider:before {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 0.15rem;
+  margin-bottom: 0.25rem;
+}
+
+.badge-exact-pro {
+  font-size: 0.58rem;
+  font-weight: 800;
+  padding: 0.12rem 0.45rem;
+  border-radius: 999px;
+  background: rgba(255, 110, 84, 0.12);
+  color: var(--color-coral);
+  letter-spacing: 0.05em;
+  border: 1px solid rgba(255, 110, 84, 0.25);
+  transition: all 0.2s ease;
+}
+
+.badge-exact-pro.active {
+  background: rgba(16, 185, 129, 0.12);
+  color: #059669;
+  border-color: rgba(16, 185, 129, 0.3);
 }
 
 .exact-time-row {
@@ -306,6 +324,29 @@ input:checked + .slider:before {
   border-radius: 10px;
   padding: 0.35rem 0.5rem;
   margin-bottom: 0.45rem;
+  transition: all 0.2s ease;
+}
+
+.exact-time-row.is-locked-pro {
+  background: #FCFCFA;
+  border: 1px dashed rgba(255, 110, 84, 0.35);
+  cursor: pointer;
+}
+
+.exact-time-row.is-locked-pro:hover {
+  border-color: var(--color-coral);
+  background: rgba(255, 110, 84, 0.04);
+}
+
+.exact-time-row.is-locked-pro .exact-input-group input {
+  cursor: pointer;
+  color: #888;
+}
+
+.exact-time-row.is-locked-pro .btn-custom-start {
+  background: linear-gradient(135deg, #18181b, #27272a);
+  border: 1px solid rgba(255, 110, 84, 0.3);
+  color: #ffaa95;
 }
 
 .exact-input-group {

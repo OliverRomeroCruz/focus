@@ -123,9 +123,12 @@
 
         <div class="pro-settings-grid">
           <!-- 1. Modo Estricto Infranqueable -->
-          <div class="pro-setting-item">
+          <div class="pro-setting-item" id="itemStrictMode">
             <div class="setting-info">
-              <strong>Modo Estricto Infranqueable 🔒</strong>
+              <div class="setting-title-row">
+                <strong>Modo Estricto Infranqueable 🔒</strong>
+                <span class="pro-badge-pill">PRO</span>
+              </div>
               <p>Elimina el botón de pausa o rendición en la pantalla de bloqueo durante sesiones de estudio.</p>
             </div>
             <label class="switch" title="Activar/desactivar modo estricto">
@@ -134,10 +137,13 @@
             </label>
           </div>
 
-          <!-- 2. Bloqueo Quirúrgico de YouTube Shorts -->
-          <div class="pro-setting-item">
+          <!-- 2. Bloquear YouTube Shorts -->
+          <div class="pro-setting-item" id="itemYoutubeShorts">
             <div class="setting-info">
-              <strong>Bloquear YouTube Shorts 🎬</strong>
+              <div class="setting-title-row">
+                <strong>Bloquear YouTube Shorts 🎬</strong>
+                <span class="pro-badge-pill">PRO</span>
+              </div>
               <p>Permite ver tutoriales y clases en YouTube pero elimina por completo el pozo adictivo de Shorts.</p>
             </div>
             <label class="switch" title="Activar/desactivar bloqueo de YouTube Shorts">
@@ -146,62 +152,52 @@
             </label>
           </div>
 
-          <!-- 3. Reto Mental Antiprocrastinación en Pantalla de Bloqueo y Mini Pantalla -->
-          <div class="pro-setting-item">
+          <!-- 3. Reto Mental en Desbloqueo y Mini Pantalla -->
+          <div class="pro-setting-item" id="itemMentalChallenge">
             <div class="setting-info">
-              <strong>Reto Mental en Desbloqueo y Mini Pantalla 🧠</strong>
+              <div class="setting-title-row">
+                <strong>Reto Mental en Desbloqueo y Mini Pantalla 🧠</strong>
+                <span class="pro-badge-pill">PRO</span>
+              </div>
               <p>Exige resolver una suma matemática si intentas pausar el tiempo o desactivar el escudo en la pantalla de bloqueo o en la mini pantalla de Chrome.</p>
             </div>
             <label class="switch" title="Activar/desactivar reto matemático">
-              <input type="checkbox" id="toggleMentalChallenge" checked>
+              <input type="checkbox" id="toggleMentalChallenge">
               <span class="slider"></span>
             </label>
           </div>
 
-          <!-- 4. Clean Sweep: Cierre Automático de Pestañas Distractoras al Iniciar -->
-          <div class="pro-setting-item">
+          <!-- 4. Cierre Automático de Pestañas (Clean Sweep) -->
+          <div class="pro-setting-item" id="itemCleanSweep">
             <div class="setting-info">
-              <strong>Cierre Automático de Pestañas (Clean Sweep) 🧹</strong>
+              <div class="setting-title-row">
+                <strong>Cierre Automático de Pestañas (Clean Sweep) 🧹</strong>
+                <span class="pro-badge-pill">PRO</span>
+              </div>
               <p>Cierra al instante todas las pestañas de sitios prohibidos que ya tengas abiertas en cuanto inicias una sesión.</p>
             </div>
             <label class="switch" title="Activar/desactivar Clean Sweep">
-              <input type="checkbox" id="toggleCleanSweep" checked>
+              <input type="checkbox" id="toggleCleanSweep">
               <span class="slider"></span>
             </label>
           </div>
 
           <!-- 5. Redirección Inmediata Anti-Tentación -->
-          <div class="pro-setting-item">
+          <div class="pro-setting-item" id="itemFastRedirect">
             <div class="setting-info">
-              <strong>Blindaje Inmediato ⚡</strong>
+              <div class="setting-title-row">
+                <strong>Blindaje Inmediato ⚡</strong>
+                <span class="pro-badge-pill">PRO</span>
+              </div>
               <p>Redirige de forma instantánea sin retrasos ni titubeos al intentar acceder a webs prohibidas.</p>
             </div>
-            <label class="switch" title="Activar/desactivar redirección inmediata">
-              <input type="checkbox" id="toggleFastRedirect" checked>
+            <label class="switch" title="Activar/desactivar blindaje inmediato">
+              <input type="checkbox" id="toggleFastRedirect">
               <span class="slider"></span>
             </label>
           </div>
 
-          <!-- 6. Perfiles de Concentración Temáticos (PRO) -->
-          <div class="pro-setting-item full-width-item">
-            <div class="setting-info">
-              <strong>Perfil de Concentración Activo 🎯</strong>
-              <p>Elige el tipo de blindaje según lo que vayas a hacer hoy:</p>
-            </div>
-            <div class="profile-selector-tabs">
-              <button type="button" class="profile-tab active" id="tabProfileMax" data-profile="max">
-                <span>🎓 Estudio Máximo (Todo Bloqueado)</span>
-              </button>
-              <button type="button" class="profile-tab" id="tabProfileWork" data-profile="work">
-                <span>💼 Trabajo Ligero (Permite YouTube)</span>
-              </button>
-              <button type="button" class="profile-tab" id="tabProfileSocial" data-profile="social">
-                <span>📵 Cero Redes (Scroll Infinito)</span>
-              </button>
-            </div>
-          </div>
-
-          <!-- 7. Activación de Cupón / Licencia (Oculto automáticamente si ya eres PRO) -->
+          <!-- Activación de Cupón / Licencia (Oculto automáticamente si ya eres PRO) -->
           <div class="pro-setting-item license-item full-width-item" id="proLicenseSection">
             <div class="setting-info">
               <strong>Activar Cupón o Clave de Licencia PRO 🎟️</strong>
@@ -214,54 +210,6 @@
           </div>
         </div>
         <div class="opt-license-feedback" id="optLicenseFeedback"></div>
-      </section>
-
-      <!-- Sección General: Alertas y Sonidos de Finalización (Gratuito y PRO) -->
-      <section class="card-section general-alerts-card" id="alertsCard">
-        <div class="section-head">
-          <div class="section-title-group">
-            <div class="title-with-badge">
-              <h2>Alertas y Sonidos de Finalización 🔔</h2>
-              <span class="plan-tag is-free-pro">GRATIS & PRO</span>
-            </div>
-            <p>Avisos audibles y visuales al completar el temporizador. Incluidos tanto en la versión normal como en PRO.</p>
-          </div>
-        </div>
-
-        <div class="general-settings-grid">
-          <!-- 1. Campana Sonora de Finalización -->
-          <div class="general-setting-item">
-            <div class="setting-info">
-              <div class="setting-title-row">
-                <strong>Campana Armónica de Finalización 🔔</strong>
-                <span class="free-pill">PLAN NORMAL Y PRO</span>
-              </div>
-              <p>Emite un sonido de campana suave y limpio cuando el reloj llega a 00:00 (suena aunque tengas Chrome minimizado o estés en otra pestaña).</p>
-            </div>
-            <div class="setting-controls">
-              <button type="button" class="btn-test-sound" id="btnTestSound" title="Comprobar cómo suena la campana">🔊 Probar sonido</button>
-              <label class="switch" title="Activar/desactivar campana sonora">
-                <input type="checkbox" id="toggleSoundAlert" checked>
-                <span class="slider"></span>
-              </label>
-            </div>
-          </div>
-
-          <!-- 2. Notificaciones Nativas de Escritorio -->
-          <div class="general-setting-item">
-            <div class="setting-info">
-              <div class="setting-title-row">
-                <strong>Notificaciones de Escritorio 🏆</strong>
-                <span class="free-pill">PLAN NORMAL Y PRO</span>
-              </div>
-              <p>Muestra un aviso emergente en tu sistema operativo al completar tu bloque de concentración.</p>
-            </div>
-            <label class="switch" title="Activar/desactivar notificaciones nativas">
-              <input type="checkbox" id="toggleNotifications" checked>
-              <span class="slider"></span>
-            </label>
-          </div>
-        </div>
       </section>
 
       <!-- Sección 1: Sitios Bloqueados -->
@@ -370,11 +318,12 @@
         </div>
 
         <ul class="pro-perks-list">
-          <li>🧠 <strong>Reto Mental en Mini Pantalla:</strong> Exige resolver una suma para apagar o pausar el tiempo.</li>
-          <li>🎯 <strong>Perfiles Temáticos:</strong> Estudio Máximo, Trabajo Ligero y Cero Redes Sociales.</li>
-          <li>🧹 <strong>Clean Sweep:</strong> Cierra automáticamente tus pestañas de distracción al iniciar.</li>
-          <li>🎬 <strong>Anti-YouTube Shorts:</strong> Ve tutoriales y clases sin caer en reels.</li>
-          <li>🔒 <strong>Modo Estricto:</strong> Blindaje total sin pausas.</li>
+          <li>⏱️ <strong>Hora Exacta de Estudio:</strong> Configura las horas y minutos exactos que quieras estudiar.</li>
+          <li>🔒 <strong>Modo Estricto Infranqueable:</strong> Elimina pausas y rendición durante sesiones de estudio.</li>
+          <li>🎬 <strong>Bloquear YouTube Shorts:</strong> Ve tutoriales y clases sin caer en Shorts.</li>
+          <li>🧠 <strong>Reto Mental en Desbloqueo y Popup:</strong> Exige resolver una suma matemática para interrumpir el tiempo.</li>
+          <li>🧹 <strong>Clean Sweep:</strong> Cierra al instante todas las pestañas de sitios prohibidos al iniciar.</li>
+          <li>⚡ <strong>Blindaje Inmediato:</strong> Redirección instantánea sin retrasos al intentar acceder a webs prohibidas.</li>
           <li>✨ <strong>Sitios y Rutinas ilimitadas:</strong> Sin límites de páginas ni horarios.</li>
         </ul>
 
