@@ -139,17 +139,13 @@ document.addEventListener("DOMContentLoaded", async () => {
     statusPanel.classList.remove("is-active", "is-paused");
     statusTitle.textContent = "¡SESIÓN COMPLETADA!";
     popupCountdown.textContent = "00:00:00";
-    statusDesc.textContent = "¡Gran trabajo de concentración!";
+    statusDesc.textContent = "¡Gran trabajo de concentración! Sitios desbloqueados.";
     btnPauseSession.classList.add("hidden");
     btnStopSession.classList.add("hidden");
 
-    await chrome.storage.local.set({
-      sessionActive: false,
-      sessionPaused: false,
-      sessionRemainingMs: 0,
-      sessionPausedMs: 0,
-      sessionEndTime: 0
-    });
+    try {
+      chrome.alarms.clear("session_timer_finish");
+    } catch (e) {}
 
     chrome.runtime.sendMessage({ action: "sessionFinished" });
   }
@@ -183,6 +179,9 @@ document.addEventListener("DOMContentLoaded", async () => {
       }
       if (changes.studyStats !== undefined) {
         applyStatsUI(changes.studyStats.newValue);
+      }
+      if (changes.sessionActive !== undefined || changes.sessionPaused !== undefined || changes.sessionEndTime !== undefined) {
+        syncTimerState();
       }
     }
   });
@@ -269,6 +268,10 @@ document.addEventListener("DOMContentLoaded", async () => {
     remainingMs = mins * 60 * 1000;
     const endTime = Date.now() + remainingMs;
 
+    try {
+      chrome.alarms.create("session_timer_finish", { when: endTime });
+    } catch (e) {}
+
     masterToggle.checked = true;
     statusPanel.classList.add("is-active");
     statusPanel.classList.remove("is-paused");
@@ -297,6 +300,10 @@ document.addEventListener("DOMContentLoaded", async () => {
   // 6. Pausar sesión (Congelado exacto instantáneo sin pérdida de segundos)
   async function pauseSession() {
     stopCountdownTicker();
+    try {
+      chrome.alarms.clear("session_timer_finish");
+    } catch (e) {}
+
     statusPanel.classList.add("is-active", "is-paused");
     statusTitle.textContent = "TIEMPO EN PAUSA";
     popupCountdown.textContent = formatTime(remainingMs);
@@ -319,6 +326,10 @@ document.addEventListener("DOMContentLoaded", async () => {
   async function resumeSession() {
     if (remainingMs <= 0) return;
     const newEndTime = Date.now() + remainingMs;
+
+    try {
+      chrome.alarms.create("session_timer_finish", { when: newEndTime });
+    } catch (e) {}
 
     masterToggle.checked = true;
     statusPanel.classList.add("is-active");
@@ -345,6 +356,10 @@ document.addEventListener("DOMContentLoaded", async () => {
   // 8. Reiniciar / Cancelar sesión
   async function resetSession() {
     stopCountdownTicker();
+    try {
+      chrome.alarms.clear("session_timer_finish");
+    } catch (e) {}
+
     remainingMs = 0;
     statusPanel.classList.remove("is-active", "is-paused");
     statusTitle.textContent = masterToggle.checked ? "ENFOQUE INACTIVO" : "ESCUDO DESACTIVADO";

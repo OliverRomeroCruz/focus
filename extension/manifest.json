@@ -31,7 +31,9 @@
   "permissions": [
     "storage",
     "tabs",
-    "alarms"
+    "alarms",
+    "notifications",
+    "offscreen"
   ],
   "host_permissions": [
     "<all_urls>"

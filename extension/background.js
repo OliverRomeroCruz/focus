@@ -129,6 +129,19 @@ chrome.runtime.onInstalled.addListener(async () => {
   updateBadgeState();
 });
 
+// Comprobación al arrancar el navegador
+chrome.runtime.onStartup.addListener(async () => {
+  const data = await chrome.storage.local.get(["sessionActive", "sessionPaused", "sessionEndTime"]);
+  if (data.sessionActive && !data.sessionPaused) {
+    if (data.sessionEndTime > 0 && data.sessionEndTime <= Date.now()) {
+      await handleSessionCompleted();
+    } else if (data.sessionEndTime > Date.now()) {
+      chrome.alarms.create("session_timer_finish", { when: data.sessionEndTime });
+    }
+  }
+  updateBadgeState();
+});
+
 // Comprobar si una rutina horaria está activa
 function checkActiveRoutine(routines) {
   if (!routines || !routines.length) return null;
@@ -214,16 +227,8 @@ async function getFocusStatus() {
       studyStats: data.studyStats
     };
   } else if (data.sessionActive && !data.sessionPaused && data.sessionEndTime > 0 && data.sessionEndTime <= now) {
-    // Sesión finalizada con éxito: registrar estadísticas
-    await recordCompletedSession(data.sessionDurationMins || 25);
-    await chrome.storage.local.set({ 
-      sessionActive: false, 
-      sessionEndTime: 0, 
-      sessionPaused: false, 
-      sessionPausedMs: 0, 
-      sessionRemainingMs: 0,
-      sessionDurationMins: 0 
-    });
+    // Sesión finalizada con éxito: registrar estadísticas, alerta sonoro-visual y desbloqueo
+    await handleSessionCompleted();
   }
 
   // 2. Rutina programada
@@ -284,6 +289,123 @@ async function recordCompletedSession(minutes) {
   stats.dailyHistory[today] = (stats.dailyHistory[today] || 0) + minutes;
 
   await chrome.storage.local.set({ studyStats: stats });
+}
+
+// Alerta de finalización de concentración: Notificación de escritorio + Sonido nítido
+let isCompletingSession = false;
+
+async function triggerFinishAlert() {
+  showDesktopNotification();
+  await playFinishSound();
+}
+
+function showDesktopNotification() {
+  try {
+    chrome.notifications.create("focus_goat_finish_" + Date.now(), {
+      type: "basic",
+      iconUrl: chrome.runtime.getURL("icons/icon128.png"),
+      title: "¡Sesión Completada! 🐐🏆",
+      message: "¡Gran trabajo de concentración! Sitios desbloqueados, ya puedes entrar donde quieras.",
+      priority: 2,
+      requireInteraction: false
+    });
+  } catch (e) {
+    console.warn("Error mostrando notificación de escritorio:", e);
+  }
+}
+
+async function playFinishSound() {
+  try {
+    let hasOffscreen = false;
+    if (chrome.runtime.getContexts) {
+      const contexts = await chrome.runtime.getContexts({ contextTypes: ["OFFSCREEN_DOCUMENT"] });
+      hasOffscreen = contexts && contexts.length > 0;
+    }
+
+    if (!hasOffscreen) {
+      try {
+        await chrome.offscreen.createDocument({
+          url: "offscreen/sound.html",
+          reasons: ["AUDIO_PLAYBACK"],
+          justification: "Reproducir sonido de campana al finalizar concentración"
+        });
+      } catch (e) {
+        // Ignorar si se estaba creando en paralelo
+      }
+    }
+
+    chrome.runtime.sendMessage({ action: "playFinishChime" }, () => {
+      if (chrome.runtime.lastError) {
+        // Ignorar si el canal no está listo
+      }
+    });
+
+    // Cerrar el documento offscreen tras la campana para optimizar memoria
+    setTimeout(async () => {
+      try {
+        await chrome.offscreen.closeDocument();
+      } catch (e) {}
+    }, 3500);
+  } catch (e) {
+    console.warn("Error al reproducir audio offscreen:", e);
+  }
+}
+
+// Desbloquear automáticamente todas las pestañas actualmente en blocked.html
+async function unblockExistingBlockedTabs() {
+  try {
+    const blockPagePrefix = chrome.runtime.getURL("blocked/blocked.html");
+    const tabs = await chrome.tabs.query({});
+    for (const tab of tabs) {
+      if (tab.url && tab.url.startsWith(blockPagePrefix)) {
+        try {
+          const parsed = new URL(tab.url);
+          const target = parsed.searchParams.get("target");
+          if (target && (target.startsWith("http://") || target.startsWith("https://"))) {
+            chrome.tabs.update(tab.id, { url: target });
+          }
+        } catch (e) {}
+      }
+    }
+  } catch (e) {}
+}
+
+// Manejador maestro de sesión terminada
+async function handleSessionCompleted() {
+  if (isCompletingSession) return;
+  isCompletingSession = true;
+
+  try {
+    const data = await chrome.storage.local.get(["sessionDurationMins", "sessionActive"]);
+    if (!data.sessionActive) {
+      isCompletingSession = false;
+      return;
+    }
+
+    const durationMins = data.sessionDurationMins || 25;
+    await recordCompletedSession(durationMins);
+
+    await chrome.storage.local.set({
+      sessionActive: false,
+      sessionEndTime: 0,
+      sessionPaused: false,
+      sessionPausedMs: 0,
+      sessionRemainingMs: 0,
+      sessionDurationMins: 0
+    });
+
+    try {
+      chrome.alarms.clear("session_timer_finish");
+    } catch (e) {}
+
+    updateBadgeState();
+    triggerFinishAlert();
+    unblockExistingBlockedTabs();
+  } catch (err) {
+    console.error("Error al finalizar sesión:", err);
+  } finally {
+    isCompletingSession = false;
+  }
 }
 
 // Comprueba si una URL coincide con la lista de bloqueo (Lista Negra)
@@ -409,9 +531,19 @@ async function updateBadgeState() {
   }
 }
 
-chrome.alarms.onAlarm.addListener((alarm) => {
+chrome.alarms.onAlarm.addListener(async (alarm) => {
+  if (alarm.name === "session_timer_finish") {
+    await handleSessionCompleted();
+    return;
+  }
+
   if (alarm.name === "focus_heartbeat") {
-    updateBadgeState();
+    const data = await chrome.storage.local.get(["sessionActive", "sessionPaused", "sessionEndTime"]);
+    if (data.sessionActive && !data.sessionPaused && data.sessionEndTime > 0 && data.sessionEndTime <= Date.now()) {
+      await handleSessionCompleted();
+    } else {
+      updateBadgeState();
+    }
   }
 });
 
@@ -429,11 +561,9 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
   }
 
   if (request.action === "sessionFinished") {
-    chrome.storage.local.get(["sessionDurationMins"]).then((res) => {
-      recordCompletedSession(res.sessionDurationMins || 25);
+    handleSessionCompleted().then(() => {
+      sendResponse({ success: true });
     });
-    updateBadgeState();
-    sendResponse({ success: true });
     return true;
   }
 
@@ -441,6 +571,7 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
     const mins = request.minutes || 25;
     const durationMs = mins * 60 * 1000;
     const endTime = Date.now() + durationMs;
+    chrome.alarms.create("session_timer_finish", { when: endTime });
     chrome.storage.local.set({
       sessionActive: true,
       sessionPaused: false,
@@ -457,6 +588,7 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
   }
 
   if (request.action === "pauseSession") {
+    chrome.alarms.clear("session_timer_finish");
     chrome.storage.local.get(["sessionActive", "sessionEndTime", "sessionRemainingMs", "sessionPausedMs"]).then((res) => {
       let remaining = res.sessionRemainingMs || res.sessionPausedMs || 0;
       if (res.sessionEndTime && res.sessionEndTime > Date.now()) {
@@ -484,6 +616,7 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
       const pausedMs = res.sessionRemainingMs || res.sessionPausedMs || 0;
       if (res.sessionActive && pausedMs > 0) {
         const newEndTime = Date.now() + pausedMs;
+        chrome.alarms.create("session_timer_finish", { when: newEndTime });
         chrome.storage.local.set({
           sessionPaused: false,
           sessionPausedMs: 0,
@@ -502,6 +635,7 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
   }
 
   if (request.action === "stopSession") {
+    chrome.alarms.clear("session_timer_finish");
     chrome.storage.local.set({
       sessionActive: false,
       sessionPaused: false,
@@ -523,6 +657,7 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
 
       if (!nextState) {
         // Al APAGAR: Si había una sesión activa corriendo, congelar exactamente el tiempo restante
+        chrome.alarms.clear("session_timer_finish");
         let remaining = res.sessionRemainingMs || res.sessionPausedMs || 0;
         if (res.sessionEndTime && res.sessionEndTime > Date.now()) {
           remaining = res.sessionEndTime - Date.now();
@@ -537,8 +672,10 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
         // Al ENCENDER: Si había tiempo congelado, restaurar la cuenta exactamente desde ese segundo
         const pausedMs = res.sessionRemainingMs || res.sessionPausedMs || 0;
         if (res.sessionActive && pausedMs > 0) {
+          const newEndTime = Date.now() + pausedMs;
+          chrome.alarms.create("session_timer_finish", { when: newEndTime });
           updates.sessionPaused = false;
-          updates.sessionEndTime = Date.now() + pausedMs;
+          updates.sessionEndTime = newEndTime;
           updates.sessionRemainingMs = pausedMs;
           updates.sessionPausedMs = 0;
         }
