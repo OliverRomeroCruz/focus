@@ -125,14 +125,15 @@ async function getFocusStatus() {
   const isPro = !!data.isPro;
   const strictMode = !!data.strictMode;
   const now = Date.now();
+  const pausedRemaining = data.sessionRemainingMs || data.sessionPausedMs || 0;
 
   // Si la sesión está pausada manualmente o por masterToggle
-  if (data.sessionActive && (data.sessionPaused || data.enabled === false) && (data.sessionPausedMs || 0) > 0) {
+  if (data.sessionActive && (data.sessionPaused || data.enabled === false) && pausedRemaining > 0) {
     return {
       isActive: false,
       isPaused: true,
       reason: "paused",
-      remainingMs: data.sessionPausedMs,
+      remainingMs: pausedRemaining,
       isPro,
       strictMode,
       studyStats: data.studyStats
@@ -292,6 +293,21 @@ chrome.alarms.onAlarm.addListener((alarm) => {
 chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
   if (request.action === "getStatus") {
     getFocusStatus().then(sendResponse);
+    return true;
+  }
+
+  if (request.action === "updateBadge") {
+    updateBadgeState();
+    sendResponse({ success: true });
+    return true;
+  }
+
+  if (request.action === "sessionFinished") {
+    chrome.storage.local.get(["sessionDurationMins"]).then((res) => {
+      recordCompletedSession(res.sessionDurationMins || 25);
+    });
+    updateBadgeState();
+    sendResponse({ success: true });
     return true;
   }
 

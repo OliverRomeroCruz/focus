@@ -1,6 +1,7 @@
 /**
  * FOCUS GOAT — Popup Controller
- * Control de sesiones, estado congelado durante pausas, sincronización PRO instantánea y audio ambiental Web Audio API.
+ * Control de sesiones, congelado exacto de tiempo al pausar, sincronización PRO instantánea.
+ * (Módulo de audio eliminado por petición del usuario).
  */
 
 document.addEventListener("DOMContentLoaded", async () => {
@@ -27,8 +28,6 @@ document.addEventListener("DOMContentLoaded", async () => {
   const btnCloseUpgrade = document.getElementById("btnCloseUpgrade");
   const statStreak = document.getElementById("statStreak");
   const statMinutes = document.getElementById("statMinutes");
-  const soundStatus = document.getElementById("soundStatus");
-  const soundChips = document.querySelectorAll(".chip-sound");
   const licenseKeyInput = document.getElementById("licenseKeyInput");
   const btnActivateKey = document.getElementById("btnActivateKey");
   const licenseFeedback = document.getElementById("licenseFeedback");
@@ -39,9 +38,22 @@ document.addEventListener("DOMContentLoaded", async () => {
   let countdownInterval = null;
   let currentTabDomain = "";
   let isUserPro = false;
-  let activeSoundType = "none";
 
-  // Función para aplicar la apariencia visual PRO de inmediato
+  // Formateo de milisegundos a HH:MM:SS
+  function formatTime(ms) {
+    if (ms <= 0) return "00:00:00";
+    const totalSecs = Math.floor(ms / 1000);
+    const hours = Math.floor(totalSecs / 3600);
+    const mins = Math.floor((totalSecs % 3600) / 60);
+    const secs = totalSecs % 60;
+    return [
+      hours.toString().padStart(2, "0"),
+      mins.toString().padStart(2, "0"),
+      secs.toString().padStart(2, "0")
+    ].join(":");
+  }
+
+  // Aplicar apariencia visual PRO de forma inmediata
   function applyProUI(isPro) {
     isUserPro = isPro;
     if (isPro) {
@@ -55,7 +67,7 @@ document.addEventListener("DOMContentLoaded", async () => {
     }
   }
 
-  // Función para actualizar las estadísticas visuales
+  // Actualizar estadísticas de estudio
   function applyStatsUI(stats) {
     if (!stats) return;
     if (statStreak) {
@@ -68,16 +80,60 @@ document.addEventListener("DOMContentLoaded", async () => {
     }
   }
 
-  // 1. CARGA INICIAL DIRECTA DESDE STORAGE (Sin esperar respuestas del background)
+  // Detener intervalo de cuenta atrás
+  function stopCountdownTicker() {
+    if (countdownInterval) {
+      clearInterval(countdownInterval);
+      countdownInterval = null;
+    }
+  }
+
+  // Iniciar intervalo de cuenta atrás
+  function startCountdownTicker() {
+    stopCountdownTicker();
+    countdownInterval = setInterval(() => {
+      if (remainingMs > 1000) {
+        remainingMs -= 1000;
+        popupCountdown.textContent = formatTime(remainingMs);
+        chrome.storage.local.set({ sessionRemainingMs: remainingMs });
+      } else {
+        remainingMs = 0;
+        popupCountdown.textContent = "00:00:00";
+        stopCountdownTicker();
+        finishSession();
+      }
+    }, 1000);
+  }
+
+  // Finalizar sesión cuando llega a 0
+  async function finishSession() {
+    stopCountdownTicker();
+    statusPanel.classList.remove("is-active", "is-paused");
+    statusTitle.textContent = "¡SESIÓN COMPLETADA!";
+    popupCountdown.textContent = "00:00:00";
+    statusDesc.textContent = "¡Gran trabajo de concentración!";
+    btnPauseSession.classList.add("hidden");
+    btnStopSession.classList.add("hidden");
+
+    await chrome.storage.local.set({
+      sessionActive: false,
+      sessionPaused: false,
+      sessionRemainingMs: 0,
+      sessionEndTime: 0
+    });
+
+    chrome.runtime.sendMessage({ action: "sessionFinished" });
+  }
+
+  // 1. CARGA INICIAL DIRECTA Y RÁPIDA DESDE STORAGE
   const initialData = await chrome.storage.local.get([
     "enabled",
     "isPro",
-    "strictMode",
     "studyStats",
     "sessionActive",
     "sessionEndTime",
     "sessionPaused",
-    "sessionPausedMs"
+    "sessionRemainingMs"
   ]);
 
   isUserPro = !!initialData.isPro;
@@ -87,7 +143,7 @@ document.addEventListener("DOMContentLoaded", async () => {
     applyStatsUI(initialData.studyStats);
   }
 
-  // 2. SINCRONIZACIÓN EN TIEMPO REAL CON CAMBIOS DE STORAGE (Ej: activación desde options)
+  // 2. SINCRONIZACIÓN EN VIVO CON STORAGE
   chrome.storage.onChanged.addListener((changes, area) => {
     if (area === "local") {
       if (changes.isPro !== undefined) {
@@ -99,11 +155,10 @@ document.addEventListener("DOMContentLoaded", async () => {
       if (changes.studyStats !== undefined) {
         applyStatsUI(changes.studyStats.newValue);
       }
-      syncUI();
     }
   });
 
-  // 3. Obtener la pestaña activa actual para el botón "Bloquear este sitio"
+  // 3. Obtener dominio actual para botón de bloqueo rápido
   try {
     const [activeTab] = await chrome.tabs.query({ active: true, currentWindow: true });
     if (activeTab && activeTab.url) {
@@ -119,128 +174,205 @@ document.addEventListener("DOMContentLoaded", async () => {
     btnBlockCurrent.style.display = "none";
   }
 
-  // 4. Formateo de tiempo
-  function formatTime(ms) {
-    if (ms <= 0) return "00:00:00";
-    const totalSecs = Math.floor(ms / 1000);
-    const hours = Math.floor(totalSecs / 3600);
-    const mins = Math.floor((totalSecs % 3600) / 60);
-    const secs = totalSecs % 60;
-    return [
-      hours.toString().padStart(2, "0"),
-      mins.toString().padStart(2, "0"),
-      secs.toString().padStart(2, "0")
-    ].join(":");
-  }
-
-  // 5. Sincronizar estado completo con background y storage
-  function syncUI() {
-    chrome.storage.local.get([
+  // 4. Sincronizar estado completo del temporizador
+  async function syncTimerState() {
+    const data = await chrome.storage.local.get([
       "enabled",
-      "isPro",
       "sessionActive",
       "sessionEndTime",
       "sessionPaused",
-      "sessionPausedMs",
-      "routines",
-      "studyStats"
-    ]).then((data) => {
-      isUserPro = !!data.isPro;
-      applyProUI(isUserPro);
-      if (data.studyStats) applyStatsUI(data.studyStats);
+      "sessionRemainingMs"
+    ]);
 
-      const isEnabled = data.enabled !== false;
-      masterToggle.checked = isEnabled;
+    const isEnabled = data.enabled !== false;
+    masterToggle.checked = isEnabled;
 
-      // CASO 1: Sesión Pausada (Tiempo CONGELADO sin bajar)
-      if (data.sessionActive && (data.sessionPaused || !isEnabled) && (data.sessionPausedMs || 0) > 0) {
-        statusPanel.classList.add("is-active");
-        statusPanel.classList.add("is-paused");
-        statusTitle.textContent = "SESIÓN PAUSADA";
-        remainingMs = data.sessionPausedMs;
-        popupCountdown.textContent = formatTime(remainingMs);
-        statusDesc.textContent = "Tiempo congelado. Pulsa Reanudar cuando vuelvas.";
-        btnPauseSession.classList.remove("hidden");
-        btnPauseSession.textContent = "▶ Reanudar";
-        btnPauseSession.classList.add("is-paused");
-        btnStopSession.classList.remove("hidden");
-        return;
-      }
+    // CASO A: Sesión Pausada (Tiempo CONGELADO)
+    if (data.sessionActive && (data.sessionPaused || !isEnabled) && (data.sessionRemainingMs || 0) > 0) {
+      stopCountdownTicker();
+      remainingMs = data.sessionRemainingMs;
+      statusPanel.classList.add("is-active", "is-paused");
+      statusTitle.textContent = "TIEMPO EN PAUSA";
+      popupCountdown.textContent = formatTime(remainingMs);
+      statusDesc.textContent = "El tiempo está detenido. Pulsa Reanudar cuando vuelvas.";
+      btnPauseSession.classList.remove("hidden");
+      btnPauseSession.textContent = "▶ Reanudar tiempo";
+      btnPauseSession.classList.add("is-paused");
+      btnStopSession.classList.remove("hidden");
+      return;
+    }
 
-      // CASO 2: Sesión Activa contando
-      const now = Date.now();
-      if (isEnabled && data.sessionActive && data.sessionEndTime && data.sessionEndTime > now) {
-        statusPanel.classList.add("is-active");
-        statusPanel.classList.remove("is-paused");
-        statusTitle.textContent = "SESIÓN DE ESTUDIO ACTIVA";
-        remainingMs = data.sessionEndTime - now;
-        popupCountdown.textContent = formatTime(remainingMs);
-        statusDesc.textContent = "Sitios distractores bloqueados.";
-        btnPauseSession.classList.remove("hidden");
-        btnPauseSession.textContent = "⏸ Pausar";
-        btnPauseSession.classList.remove("is-paused");
-        btnStopSession.classList.remove("hidden");
-        return;
-      }
-
-      // CASO 3: Enfoque Inactivo
-      statusPanel.classList.remove("is-active");
+    // CASO B: Sesión Activa contando
+    const now = Date.now();
+    if (isEnabled && data.sessionActive && data.sessionEndTime && data.sessionEndTime > now) {
+      remainingMs = data.sessionEndTime - now;
+      statusPanel.classList.add("is-active");
       statusPanel.classList.remove("is-paused");
-      statusTitle.textContent = isEnabled ? "ENFOQUE INACTIVO" : "ESCUDO DESACTIVADO";
-      popupCountdown.textContent = "00:00:00";
-      statusDesc.textContent = isEnabled 
-        ? "Inicia una sesión de estudio para blindar tu concentración." 
-        : "La protección de sitios está pausada globalmente.";
-      btnPauseSession.classList.add("hidden");
-      btnStopSession.classList.add("hidden");
-      remainingMs = 0;
-    });
+      statusTitle.textContent = "SESIÓN DE ESTUDIO ACTIVA";
+      popupCountdown.textContent = formatTime(remainingMs);
+      statusDesc.textContent = "Sitios distractores bloqueados.";
+      btnPauseSession.classList.remove("hidden");
+      btnPauseSession.textContent = "⏸ Pausar tiempo";
+      btnPauseSession.classList.remove("is-paused");
+      btnStopSession.classList.remove("hidden");
+      startCountdownTicker();
+      return;
+    }
+
+    // CASO C: Inactivo
+    stopCountdownTicker();
+    remainingMs = 0;
+    statusPanel.classList.remove("is-active", "is-paused");
+    statusTitle.textContent = isEnabled ? "ENFOQUE INACTIVO" : "ESCUDO DESACTIVADO";
+    popupCountdown.textContent = "00:00:00";
+    statusDesc.textContent = isEnabled 
+      ? "Inicia un bloque de estudio para blindar tu concentración." 
+      : "La protección de sitios está pausada globalmente.";
+    btnPauseSession.classList.add("hidden");
+    btnStopSession.classList.add("hidden");
   }
 
-  syncUI();
+  // 5. Iniciar nueva sesión con minutos
+  async function startNewSession(mins) {
+    stopCountdownTicker();
+    remainingMs = mins * 60 * 1000;
+    const endTime = Date.now() + remainingMs;
 
-  // Tic de cuenta atrás: SOLO baja si NO está pausado
-  countdownInterval = setInterval(() => {
-    const isPaused = statusPanel.classList.contains("is-paused");
-    if (!isPaused && remainingMs > 1000) {
-      remainingMs -= 1000;
-      popupCountdown.textContent = formatTime(remainingMs);
-    } else if (!isPaused && remainingMs > 0 && remainingMs <= 1000) {
-      syncUI();
-    }
-  }, 1000);
+    masterToggle.checked = true;
+    statusPanel.classList.add("is-active");
+    statusPanel.classList.remove("is-paused");
+    statusTitle.textContent = "SESIÓN DE ESTUDIO ACTIVA";
+    popupCountdown.textContent = formatTime(remainingMs);
+    statusDesc.textContent = "Sitios distractores bloqueados.";
+    btnPauseSession.classList.remove("hidden");
+    btnPauseSession.textContent = "⏸ Pausar tiempo";
+    btnPauseSession.classList.remove("is-paused");
+    btnStopSession.classList.remove("hidden");
 
-  // 6. Master Toggle (Activar/Desactivar extensión)
-  masterToggle.addEventListener("change", () => {
-    chrome.runtime.sendMessage({ action: "toggleMaster" }, () => {
-      syncUI();
+    await chrome.storage.local.set({
+      sessionActive: true,
+      sessionPaused: false,
+      sessionRemainingMs: remainingMs,
+      sessionEndTime: endTime,
+      sessionDurationMins: mins,
+      enabled: true
     });
-  });
 
-  // 7. Botón Pausar / Reanudar sesión
+    startCountdownTicker();
+    chrome.runtime.sendMessage({ action: "updateBadge" });
+  }
+
+  // 6. Pausar sesión (Congelado exacto instantáneo)
+  async function pauseSession() {
+    stopCountdownTicker();
+    statusPanel.classList.add("is-active", "is-paused");
+    statusTitle.textContent = "TIEMPO EN PAUSA";
+    popupCountdown.textContent = formatTime(remainingMs);
+    statusDesc.textContent = "El tiempo está detenido. No se descontará ningún segundo.";
+    btnPauseSession.textContent = "▶ Reanudar tiempo";
+    btnPauseSession.classList.add("is-paused");
+
+    await chrome.storage.local.set({
+      sessionActive: true,
+      sessionPaused: true,
+      sessionRemainingMs: remainingMs,
+      sessionEndTime: 0
+    });
+
+    chrome.runtime.sendMessage({ action: "updateBadge" });
+  }
+
+  // 7. Reanudar sesión (Continúa desde el mismo segundo)
+  async function resumeSession() {
+    if (remainingMs <= 0) return;
+    const newEndTime = Date.now() + remainingMs;
+
+    masterToggle.checked = true;
+    statusPanel.classList.add("is-active");
+    statusPanel.classList.remove("is-paused");
+    statusTitle.textContent = "SESIÓN DE ESTUDIO ACTIVA";
+    popupCountdown.textContent = formatTime(remainingMs);
+    statusDesc.textContent = "Sitios distractores bloqueados.";
+    btnPauseSession.textContent = "⏸ Pausar tiempo";
+    btnPauseSession.classList.remove("is-paused");
+
+    await chrome.storage.local.set({
+      sessionActive: true,
+      sessionPaused: false,
+      sessionRemainingMs: remainingMs,
+      sessionEndTime: newEndTime,
+      enabled: true
+    });
+
+    startCountdownTicker();
+    chrome.runtime.sendMessage({ action: "updateBadge" });
+  }
+
+  // 8. Reiniciar / Cancelar sesión
+  async function resetSession() {
+    stopCountdownTicker();
+    remainingMs = 0;
+    statusPanel.classList.remove("is-active", "is-paused");
+    statusTitle.textContent = masterToggle.checked ? "ENFOQUE INACTIVO" : "ESCUDO DESACTIVADO";
+    popupCountdown.textContent = "00:00:00";
+    statusDesc.textContent = "Inicia un bloque de estudio para blindar tu concentración.";
+    btnPauseSession.classList.add("hidden");
+    btnStopSession.classList.add("hidden");
+
+    await chrome.storage.local.set({
+      sessionActive: false,
+      sessionPaused: false,
+      sessionRemainingMs: 0,
+      sessionEndTime: 0,
+      sessionDurationMins: 0
+    });
+
+    chrome.runtime.sendMessage({ action: "updateBadge" });
+  }
+
+  // Botón Pausar / Reanudar
   btnPauseSession.addEventListener("click", () => {
-    const isPaused = btnPauseSession.classList.contains("is-paused");
-    if (isPaused) {
-      // Reanudar
-      chrome.runtime.sendMessage({ action: "resumeSession" }, () => {
-        syncUI();
-      });
+    if (btnPauseSession.classList.contains("is-paused")) {
+      resumeSession();
     } else {
-      // Pausar
-      chrome.runtime.sendMessage({ action: "pauseSession" }, () => {
-        syncUI();
-      });
+      pauseSession();
     }
   });
 
-  // 8. Iniciar sesiones rápidas
+  // Botón Reiniciar
+  btnStopSession.addEventListener("click", resetSession);
+
+  // Switch Master Toggle (Activar/Desactivar extensión)
+  masterToggle.addEventListener("change", async () => {
+    const isChecked = masterToggle.checked;
+    await chrome.storage.local.set({ enabled: isChecked });
+
+    if (!isChecked) {
+      // Si el usuario apaga el escudo y hay una sesión activa, congelamos el tiempo
+      const data = await chrome.storage.local.get(["sessionActive", "sessionPaused"]);
+      if (data.sessionActive && !data.sessionPaused) {
+        pauseSession();
+      } else {
+        syncTimerState();
+      }
+    } else {
+      // Si el usuario vuelve a encender el escudo y el tiempo estaba pausado, reanudamos
+      const data = await chrome.storage.local.get(["sessionActive", "sessionPaused"]);
+      if (data.sessionActive && data.sessionPaused) {
+        resumeSession();
+      } else {
+        syncTimerState();
+      }
+    }
+
+    chrome.runtime.sendMessage({ action: "updateBadge" });
+  });
+
+  // Botones rápidos de temporizador
   timerButtons.forEach((btn) => {
     btn.addEventListener("click", () => {
       const mins = parseInt(btn.dataset.mins, 10);
-      chrome.runtime.sendMessage({ action: "startSession", minutes: mins }, () => {
-        masterToggle.checked = true;
-        syncUI();
-      });
+      startNewSession(mins);
     });
   });
 
@@ -248,21 +380,11 @@ document.addEventListener("DOMContentLoaded", async () => {
   btnCustomStart.addEventListener("click", () => {
     const mins = parseInt(customMinsInput.value, 10);
     if (mins && mins > 0) {
-      chrome.runtime.sendMessage({ action: "startSession", minutes: mins }, () => {
-        masterToggle.checked = true;
-        syncUI();
-      });
+      startNewSession(mins);
     }
   });
 
-  // 9. Detener sesión actual por completo
-  btnStopSession.addEventListener("click", () => {
-    chrome.runtime.sendMessage({ action: "stopSession" }, () => {
-      syncUI();
-    });
-  });
-
-  // 10. Bloquear sitio actual con control Freemium (10 sitios)
+  // Bloquear pestaña actual con límite de 10 sitios
   btnBlockCurrent.addEventListener("click", () => {
     if (!currentTabDomain) return;
 
@@ -280,13 +402,13 @@ document.addEventListener("DOMContentLoaded", async () => {
     });
   });
 
-  // 11. Abrir panel de opciones completo
+  // Abrir opciones
   btnOpenOptions.addEventListener("click", () => {
     chrome.runtime.openOptionsPage();
   });
 
   // ==========================================
-  // 12. MODAL DE MEJORA FOCUS GOAT PRO
+  // MODAL FOCUS GOAT PRO
   // ==========================================
   function openUpgradeModal() {
     if (upgradeModal) {
@@ -311,19 +433,15 @@ document.addEventListener("DOMContentLoaded", async () => {
 
   if (upgradeModal) {
     upgradeModal.addEventListener("click", (e) => {
-      if (e.target === upgradeModal) {
-        closeUpgradeModal();
-      }
+      if (e.target === upgradeModal) closeUpgradeModal();
     });
   }
 
   document.addEventListener("keydown", (e) => {
-    if (e.key === "Escape") {
-      closeUpgradeModal();
-    }
+    if (e.key === "Escape") closeUpgradeModal();
   });
 
-  // Activación de Clave de Licencia PRO directa en Popup
+  // Activación de Licencia PRO en Popup
   if (btnActivateKey) {
     btnActivateKey.addEventListener("click", () => {
       const key = (licenseKeyInput.value || "").trim();
@@ -345,15 +463,11 @@ document.addEventListener("DOMContentLoaded", async () => {
 
       if (isValid) {
         chrome.storage.local.set({ isPro: true, licenseKey: key.toUpperCase() }, () => {
-          chrome.runtime.sendMessage({ action: "activateLicense", key }, () => {
-            if (chrome.runtime.lastError) { /* ignore */ }
-          });
           applyProUI(true);
           licenseFeedback.textContent = "¡Focus Goat PRO activado con éxito! 👑";
           licenseFeedback.className = "license-feedback success";
           setTimeout(() => {
             closeUpgradeModal();
-            syncUI();
           }, 1000);
         });
       } else {
@@ -363,8 +477,7 @@ document.addEventListener("DOMContentLoaded", async () => {
     });
   }
 
-  // Pasarelas de compra (Checkout)
-  function handleCheckout(plan) {
+  function handleCheckout() {
     alert("Redirigiendo a la pasarela de pago segura...\n\nNota de prueba: Puedes activar PRO al instante con la clave:\n👉 GOAT2026 o OLIVER-PRO");
     if (licenseKeyInput) {
       licenseKeyInput.value = "GOAT2026";
@@ -372,160 +485,9 @@ document.addEventListener("DOMContentLoaded", async () => {
     }
   }
 
-  if (btnCheckoutMonthly) btnCheckoutMonthly.addEventListener("click", () => handleCheckout("monthly"));
-  if (btnCheckoutLifetime) btnCheckoutLifetime.addEventListener("click", () => handleCheckout("lifetime"));
+  if (btnCheckoutMonthly) btnCheckoutMonthly.addEventListener("click", handleCheckout);
+  if (btnCheckoutLifetime) btnCheckoutLifetime.addEventListener("click", handleCheckout);
 
-  // ==========================================
-  // 13. SINTETIZADOR DE AUDIO AMBIENTAL (Web Audio API)
-  // Generación pura y nativa en el navegador, 0 descargas MP3
-  // ==========================================
-  let audioCtx = null;
-  let activeAudioNodes = null;
-
-  function stopAmbientSound() {
-    if (activeAudioNodes) {
-      try {
-        if (activeAudioNodes.gainNode && audioCtx) {
-          activeAudioNodes.gainNode.gain.linearRampToValueAtTime(0.001, audioCtx.currentTime + 0.3);
-        }
-        setTimeout(() => {
-          if (activeAudioNodes && activeAudioNodes.source) {
-            activeAudioNodes.source.stop();
-            activeAudioNodes.source.disconnect();
-          }
-          activeAudioNodes = null;
-        }, 350);
-      } catch (e) {
-        activeAudioNodes = null;
-      }
-    }
-    activeSoundType = "none";
-    if (soundStatus) soundStatus.textContent = "Silencio";
-    soundChips.forEach(chip => {
-      chip.classList.toggle("is-active", chip.dataset.sound === "none");
-    });
-  }
-
-  function createNoiseBuffer(ctx, seconds = 5) {
-    const bufferSize = ctx.sampleRate * seconds;
-    const buffer = ctx.createBuffer(1, bufferSize, ctx.sampleRate);
-    const data = buffer.getChannelData(0);
-    for (let i = 0; i < bufferSize; i++) {
-      data[i] = Math.random() * 2 - 1;
-    }
-    return buffer;
-  }
-
-  function playAmbientSound(type) {
-    stopAmbientSound();
-    if (type === "none") return;
-
-    if (!isUserPro) {
-      openUpgradeModal();
-      return;
-    }
-
-    try {
-      if (!audioCtx) {
-        audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-      }
-      if (audioCtx.state === "suspended") {
-        audioCtx.resume();
-      }
-
-      const noiseBuffer = createNoiseBuffer(audioCtx, 4);
-      const noiseSource = audioCtx.createBufferSource();
-      noiseSource.buffer = noiseBuffer;
-      noiseSource.loop = true;
-
-      const gainNode = audioCtx.createGain();
-      gainNode.gain.setValueAtTime(0.001, audioCtx.currentTime);
-
-      if (type === "rain") {
-        // Lluvia suave: filtro paso banda y ruido blanco matizado
-        const filter = audioCtx.createBiquadFilter();
-        filter.type = "lowpass";
-        filter.frequency.value = 950;
-
-        const highpass = audioCtx.createBiquadFilter();
-        highpass.type = "highpass";
-        highpass.frequency.value = 350;
-
-        noiseSource.connect(filter);
-        filter.connect(highpass);
-        highpass.connect(gainNode);
-
-        gainNode.gain.linearRampToValueAtTime(0.12, audioCtx.currentTime + 0.5);
-        if (soundStatus) soundStatus.textContent = "🌧️ Lluvia";
-
-      } else if (type === "white") {
-        // Olas de océano: LFO modulando el volumen
-        const filter = audioCtx.createBiquadFilter();
-        filter.type = "lowpass";
-        filter.frequency.value = 450;
-
-        const lfo = audioCtx.createOscillator();
-        const lfoGain = audioCtx.createGain();
-        lfo.type = "sine";
-        lfo.frequency.value = 0.15; // Onda de 6.6 segundos
-        lfoGain.gain.value = 0.08;
-
-        lfo.connect(lfoGain);
-        lfoGain.connect(gainNode.gain);
-        lfo.start();
-
-        noiseSource.connect(filter);
-        filter.connect(gainNode);
-
-        gainNode.gain.linearRampToValueAtTime(0.10, audioCtx.currentTime + 0.5);
-        if (soundStatus) soundStatus.textContent = "🌊 Olas";
-
-      } else if (type === "focus") {
-        // Ruido rosa / 432Hz calmo para concentración profunda
-        const filter = audioCtx.createBiquadFilter();
-        filter.type = "lowpass";
-        filter.frequency.value = 320;
-
-        const subOsc = audioCtx.createOscillator();
-        const subGain = audioCtx.createGain();
-        subOsc.type = "sine";
-        subOsc.frequency.value = 108; // Armónico de 432 Hz
-        subGain.gain.value = 0.03;
-
-        noiseSource.connect(filter);
-        filter.connect(gainNode);
-        subOsc.connect(subGain);
-        subGain.connect(gainNode);
-
-        subOsc.start();
-        gainNode.gain.linearRampToValueAtTime(0.14, audioCtx.currentTime + 0.5);
-        if (soundStatus) soundStatus.textContent = "🎧 Ruido Rosa";
-      }
-
-      gainNode.connect(audioCtx.destination);
-      noiseSource.start();
-
-      activeAudioNodes = { source: noiseSource, gainNode };
-      activeSoundType = type;
-
-      soundChips.forEach(chip => {
-        chip.classList.toggle("is-active", chip.dataset.sound === type);
-      });
-
-    } catch (err) {
-      console.warn("No se pudo iniciar el audio:", err);
-    }
-  }
-
-  soundChips.forEach(chip => {
-    chip.addEventListener("click", () => {
-      const type = chip.dataset.sound;
-      playAmbientSound(type);
-    });
-  });
-
-  // Detener audio al cerrar el popup
-  window.addEventListener("beforeunload", () => {
-    stopAmbientSound();
-  });
+  // Inicializar estado del temporizador
+  syncTimerState();
 });

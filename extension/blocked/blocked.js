@@ -89,6 +89,13 @@ document.addEventListener("DOMContentLoaded", async () => {
 
   function syncTimer() {
     chrome.runtime.sendMessage({ action: "getStatus" }, (status) => {
+      if (status && status.isPaused) {
+        remainingMs = status.remainingMs;
+        timerModeEl.textContent = "Sesión pausada (Tiempo detenido)";
+        updateDisplay();
+        return;
+      }
+
       if (!status || !status.isActive) {
         timerDisplayEl.textContent = "00:00:00";
         timerModeEl.textContent = "Sesión finalizada. Desbloqueado.";
