@@ -198,17 +198,20 @@ document.addEventListener("DOMContentLoaded", async () => {
   let emergencyInterval = null;
   let currentSolution = null;
 
-  btnUnlockEmergency.addEventListener("click", () => {
+  btnUnlockEmergency.addEventListener("click", async () => {
     if (isStrict) {
       alert("Modo Estricto PRO activo:\n\nTu sesión de concentración está blindada y no admite pausas de emergencia. ¡Termina tu bloque de estudio!");
       return;
     }
 
-    const isUserPro = urlParams.get("isPro") === "1";
+    const st = await chrome.storage.local.get(["isPro", "mentalChallenge"]);
+    const isUserPro = !!st.isPro || urlParams.get("isPro") === "1";
+    const useMentalChallenge = isUserPro && st.mentalChallenge !== false;
+
     emergencyModal.classList.remove("hidden");
     btnConfirmEmergency.disabled = true;
 
-    if (isUserPro) {
+    if (useMentalChallenge) {
       // MODO PRO: Reto Mental Antiprocrastinación
       if (freeFrictionBox) freeFrictionBox.classList.add("hidden");
       if (proChallengeBox) proChallengeBox.classList.remove("hidden");

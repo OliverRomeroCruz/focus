@@ -62,6 +62,7 @@ document.addEventListener("DOMContentLoaded", async () => {
       planBadge.textContent = "👑 PRO";
       planBadge.classList.add("is-pro");
       if (proBanner) proBanner.style.display = "none";
+      closeUpgradeModal();
     } else {
       planBadge.textContent = "FREE";
       planBadge.classList.remove("is-pro");
@@ -182,8 +183,12 @@ document.addEventListener("DOMContentLoaded", async () => {
     btnPauseSession.classList.add("hidden");
     btnStopSession.classList.add("hidden");
 
-    // Reproducir sonido inmediato en el popup
-    playPopupChime();
+    // Reproducir sonido inmediato en el popup si está activado
+    chrome.storage.local.get(["soundAlert"], (res) => {
+      if (res.soundAlert !== false) {
+        playPopupChime();
+      }
+    });
 
     try {
       chrome.alarms.clear("session_timer_finish");
@@ -517,6 +522,7 @@ document.addEventListener("DOMContentLoaded", async () => {
   // MODAL FOCUS GOAT PRO
   // ==========================================
   function openUpgradeModal() {
+    if (isUserPro) return; // Si ya es PRO, no abrir modal
     if (upgradeModal) {
       upgradeModal.classList.remove("hidden");
       licenseFeedback.textContent = "";

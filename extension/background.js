@@ -346,8 +346,13 @@ async function recordCompletedSession(minutes) {
 let lastCompletedAlertTime = 0;
 
 async function triggerFinishAlert() {
-  showDesktopNotification();
-  await playFinishSound();
+  const data = await chrome.storage.local.get(["soundAlert", "desktopNotifications"]);
+  if (data.desktopNotifications !== false) {
+    showDesktopNotification();
+  }
+  if (data.soundAlert !== false) {
+    await playFinishSound();
+  }
 }
 
 function showDesktopNotification() {

@@ -103,7 +103,7 @@
                 <h2>FOCUS GOAT PRO</h2>
                 <span class="plan-tag" id="planTag">PLAN GRATUITO</span>
               </div>
-              <p>Desbloquea blindaje estricto, modo solo estudio, bloqueo de YouTube Shorts y sitios ilimitados.</p>
+              <p id="proSubtitle">Desbloquea blindaje estricto, modo solo estudio, bloqueo de YouTube Shorts, alertas personalizadas y sitios ilimitados.</p>
             </div>
           </div>
           <div class="pro-card-actions">
@@ -112,12 +112,21 @@
           </div>
         </div>
 
+        <!-- Banner de Confirmación cuando es PRO -->
+        <div class="pro-active-banner hidden" id="proActiveBanner">
+          <span class="pro-active-icon">👑</span>
+          <div class="pro-active-text">
+            <strong>¡Tu plan Focus Goat PRO está activo!</strong>
+            <p>Tienes acceso ilimitado a todas las herramientas de blindaje, modo solo estudio y rutinas de concentración sin restricciones.</p>
+          </div>
+        </div>
+
         <div class="pro-settings-grid">
-          <!-- Modo Estricto Infranqueable -->
+          <!-- 1. Modo Estricto Infranqueable -->
           <div class="pro-setting-item">
             <div class="setting-info">
               <strong>Modo Estricto Infranqueable 🔒</strong>
-              <p>Elimina el botón de pausa de emergencia en la pantalla de bloqueo durante sesiones de estudio.</p>
+              <p>Elimina el botón de pausa o rendición en la pantalla de bloqueo durante sesiones de estudio.</p>
             </div>
             <label class="switch" title="Activar/desactivar modo estricto">
               <input type="checkbox" id="toggleStrictMode">
@@ -125,11 +134,11 @@
             </label>
           </div>
 
-          <!-- Bloqueo Quirúrgico de YouTube Shorts -->
+          <!-- 2. Bloqueo Quirúrgico de YouTube Shorts -->
           <div class="pro-setting-item">
             <div class="setting-info">
               <strong>Bloquear YouTube Shorts 🎬</strong>
-              <p>Permite ver tutoriales y clases en YouTube pero elimina por completo los Shorts y recomendaciones.</p>
+              <p>Permite ver tutoriales y clases en YouTube pero elimina por completo el pozo adictivo de Shorts.</p>
             </div>
             <label class="switch" title="Activar/desactivar bloqueo de YouTube Shorts">
               <input type="checkbox" id="toggleYoutubeShorts">
@@ -137,7 +146,55 @@
             </label>
           </div>
 
-          <!-- Selector de Modo de Bloqueo -->
+          <!-- 3. Alerta Sonora de Campana -->
+          <div class="pro-setting-item">
+            <div class="setting-info">
+              <strong>Campana Armónica de Finalización 🔔</strong>
+              <p>Emite un sonido de campana suave y limpio cuando el reloj llega a 00:00 (incluso minimizado).</p>
+            </div>
+            <label class="switch" title="Activar/desactivar campana sonora">
+              <input type="checkbox" id="toggleSoundAlert" checked>
+              <span class="slider"></span>
+            </label>
+          </div>
+
+          <!-- 4. Notificaciones Nativas de Escritorio -->
+          <div class="pro-setting-item">
+            <div class="setting-info">
+              <strong>Notificaciones de Escritorio 🏆</strong>
+              <p>Muestra un aviso emergente nativo en Windows al completar tu bloque de concentración.</p>
+            </div>
+            <label class="switch" title="Activar/desactivar notificaciones nativas">
+              <input type="checkbox" id="toggleNotifications" checked>
+              <span class="slider"></span>
+            </label>
+          </div>
+
+          <!-- 5. Reto Mental Antiprocrastinación -->
+          <div class="pro-setting-item">
+            <div class="setting-info">
+              <strong>Reto Mental en Desbloqueo 🧠</strong>
+              <p>Exige resolver una suma matemática si intentas hacer una pausa de emergencia en la pantalla de bloqueo.</p>
+            </div>
+            <label class="switch" title="Activar/desactivar reto matemático">
+              <input type="checkbox" id="toggleMentalChallenge" checked>
+              <span class="slider"></span>
+            </label>
+          </div>
+
+          <!-- 6. Redirección Inmediata Anti-Tentación -->
+          <div class="pro-setting-item">
+            <div class="setting-info">
+              <strong>Blindaje Inmediato ⚡</strong>
+              <p>Redirige de forma instantánea sin retrasos ni titubeos al intentar acceder a webs prohibidas.</p>
+            </div>
+            <label class="switch" title="Activar/desactivar redirección inmediata">
+              <input type="checkbox" id="toggleFastRedirect" checked>
+              <span class="slider"></span>
+            </label>
+          </div>
+
+          <!-- 7. Selector de Modo de Bloqueo -->
           <div class="pro-setting-item full-width-item">
             <div class="setting-info">
               <strong>Estrategia de Concentración:</strong>
@@ -153,15 +210,15 @@
             </div>
           </div>
 
-          <!-- Activación de Licencia -->
-          <div class="pro-setting-item license-item full-width-item">
+          <!-- 8. Activación de Cupón / Licencia (Oculto automáticamente si ya eres PRO) -->
+          <div class="pro-setting-item license-item full-width-item" id="proLicenseSection">
             <div class="setting-info">
-              <strong>Activar Clave de Licencia PRO</strong>
-              <p>Introduce tu clave de compra de Focus Goat PRO.</p>
+              <strong>Activar Cupón o Clave de Licencia PRO 🎟️</strong>
+              <p>Introduce tu código o cupón de Focus Goat PRO para desbloquear todas las ventajas.</p>
             </div>
             <div class="license-form">
-              <input type="text" id="optLicenseInput" placeholder="Introduce tu clave..." autocomplete="off">
-              <button type="button" class="btn-primary" id="btnOptActivate">Activar</button>
+              <input type="text" id="optLicenseInput" placeholder="Introduce tu cupón o clave (ej: GOAT2026)..." autocomplete="off">
+              <button type="button" class="btn-primary" id="btnOptActivate">Activar Cupón</button>
             </div>
           </div>
         </div>

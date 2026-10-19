@@ -22,10 +22,17 @@ document.addEventListener("DOMContentLoaded", async () => {
 
   // Elementos PRO
   const planTag = document.getElementById("planTag");
+  const proSubtitle = document.getElementById("proSubtitle");
+  const proActiveBanner = document.getElementById("proActiveBanner");
+  const proLicenseSection = document.getElementById("proLicenseSection");
   const btnOptionsUpgrade = document.getElementById("btnOptionsUpgrade");
   const btnDeactivatePro = document.getElementById("btnDeactivatePro");
   const toggleStrictMode = document.getElementById("toggleStrictMode");
   const toggleYoutubeShorts = document.getElementById("toggleYoutubeShorts");
+  const toggleSoundAlert = document.getElementById("toggleSoundAlert");
+  const toggleNotifications = document.getElementById("toggleNotifications");
+  const toggleMentalChallenge = document.getElementById("toggleMentalChallenge");
+  const toggleFastRedirect = document.getElementById("toggleFastRedirect");
   const tabModeBlacklist = document.getElementById("tabModeBlacklist");
   const tabModeWhitelist = document.getElementById("tabModeWhitelist");
   const optLicenseInput = document.getElementById("optLicenseInput");
@@ -76,6 +83,10 @@ document.addEventListener("DOMContentLoaded", async () => {
     "routines",
     "isPro",
     "strictMode",
+    "soundAlert",
+    "desktopNotifications",
+    "mentalChallenge",
+    "fastRedirect",
     "studyStats"
   ]);
   let blockedSites = state.blockedSites || [];
@@ -85,6 +96,10 @@ document.addEventListener("DOMContentLoaded", async () => {
   let routines = state.routines || [];
   let isPro = !!state.isPro;
   let strictMode = !!state.strictMode;
+  let soundAlert = state.soundAlert !== false;
+  let desktopNotifications = state.desktopNotifications !== false;
+  let mentalChallenge = state.mentalChallenge !== false;
+  let fastRedirect = state.fastRedirect !== false;
   let studyStats = state.studyStats || {};
 
   function cleanDomain(input) {
@@ -100,24 +115,41 @@ document.addEventListener("DOMContentLoaded", async () => {
   // ==========================================
   function updateProUI() {
     if (isPro) {
-      planTag.textContent = "👑 LICENCIA PRO ACTIVA";
+      planTag.textContent = "👑 PLAN PRO ACTIVO";
       planTag.classList.add("is-pro");
-      btnOptionsUpgrade.textContent = "Plan PRO Activo ✓";
-      btnOptionsUpgrade.style.background = "#22c55e";
-      btnOptionsUpgrade.style.boxShadow = "none";
-      btnOptionsUpgrade.disabled = true;
-      if (btnDeactivatePro) btnDeactivatePro.classList.remove("hidden");
+      if (proSubtitle) proSubtitle.textContent = "¡Eres PRO! Tienes desbloqueadas todas las funciones de blindaje, modo solo estudio, sitios ilimitados y rutinas.";
+
+      // Ocultar botón de compra y formulario de cupón
+      if (btnOptionsUpgrade) btnOptionsUpgrade.classList.add("hidden");
+      if (proLicenseSection) proLicenseSection.classList.add("hidden");
+      if (proActiveBanner) proActiveBanner.classList.remove("hidden");
+      if (btnDeactivatePro) {
+        btnDeactivatePro.classList.remove("hidden");
+        btnDeactivatePro.textContent = "Volver al plan Free / Desactivar PRO";
+      }
     } else {
       planTag.textContent = "PLAN GRATUITO";
       planTag.classList.remove("is-pro");
-      btnOptionsUpgrade.textContent = "Mejorar a PRO";
-      btnOptionsUpgrade.style.background = "var(--color-coral)";
-      btnOptionsUpgrade.disabled = false;
+      if (proSubtitle) proSubtitle.textContent = "Desbloquea blindaje estricto, modo solo estudio, bloqueo de YouTube Shorts y sitios ilimitados.";
+
+      // Mostrar botón de compra y formulario de cupón
+      if (btnOptionsUpgrade) {
+        btnOptionsUpgrade.classList.remove("hidden");
+        btnOptionsUpgrade.textContent = "Mejorar a PRO";
+        btnOptionsUpgrade.style.background = "var(--color-coral)";
+        btnOptionsUpgrade.disabled = false;
+      }
+      if (proLicenseSection) proLicenseSection.classList.remove("hidden");
+      if (proActiveBanner) proActiveBanner.classList.add("hidden");
       if (btnDeactivatePro) btnDeactivatePro.classList.add("hidden");
     }
 
-    toggleStrictMode.checked = isPro && strictMode;
+    if (toggleStrictMode) toggleStrictMode.checked = isPro && strictMode;
     if (toggleYoutubeShorts) toggleYoutubeShorts.checked = isPro && blockYoutubeShorts;
+    if (toggleSoundAlert) toggleSoundAlert.checked = soundAlert;
+    if (toggleNotifications) toggleNotifications.checked = desktopNotifications;
+    if (toggleMentalChallenge) toggleMentalChallenge.checked = isPro ? mentalChallenge : false;
+    if (toggleFastRedirect) toggleFastRedirect.checked = fastRedirect;
 
     if (blockMode === "whitelist" && isPro) {
       if (tabModeWhitelist) tabModeWhitelist.classList.add("active");
@@ -150,6 +182,7 @@ document.addEventListener("DOMContentLoaded", async () => {
       chrome.runtime.sendMessage({ action: "deactivateLicense" }, () => {
         if (chrome.runtime.lastError) { /* ignore */ }
       });
+      if (optLicenseInput) optLicenseInput.value = "";
       optLicenseFeedback.textContent = "Has vuelto al Plan Gratuito.";
       optLicenseFeedback.className = "opt-license-feedback";
       updateProUI();
@@ -157,16 +190,18 @@ document.addEventListener("DOMContentLoaded", async () => {
   }
 
   // Activar Modo Estricto
-  toggleStrictMode.addEventListener("change", async (e) => {
-    if (!isPro) {
-      toggleStrictMode.checked = false;
-      openOptModal();
-      return;
-    }
+  if (toggleStrictMode) {
+    toggleStrictMode.addEventListener("change", async () => {
+      if (!isPro) {
+        toggleStrictMode.checked = false;
+        openOptModal();
+        return;
+      }
 
-    strictMode = toggleStrictMode.checked;
-    await chrome.storage.local.set({ strictMode });
-  });
+      strictMode = toggleStrictMode.checked;
+      await chrome.storage.local.set({ strictMode });
+    });
+  }
 
   // Activar Bloqueador de YouTube Shorts
   if (toggleYoutubeShorts) {
@@ -179,6 +214,43 @@ document.addEventListener("DOMContentLoaded", async () => {
       blockYoutubeShorts = toggleYoutubeShorts.checked;
       await chrome.storage.local.set({ blockYoutubeShorts });
       chrome.runtime.sendMessage({ action: "toggleYoutubeShorts" });
+    });
+  }
+
+  // Activar/desactivar Campana Sonora
+  if (toggleSoundAlert) {
+    toggleSoundAlert.addEventListener("change", async () => {
+      soundAlert = toggleSoundAlert.checked;
+      await chrome.storage.local.set({ soundAlert });
+    });
+  }
+
+  // Activar/desactivar Notificaciones Nativas
+  if (toggleNotifications) {
+    toggleNotifications.addEventListener("change", async () => {
+      desktopNotifications = toggleNotifications.checked;
+      await chrome.storage.local.set({ desktopNotifications });
+    });
+  }
+
+  // Activar/desactivar Reto Mental (PRO)
+  if (toggleMentalChallenge) {
+    toggleMentalChallenge.addEventListener("change", async () => {
+      if (!isPro) {
+        toggleMentalChallenge.checked = false;
+        openOptModal();
+        return;
+      }
+      mentalChallenge = toggleMentalChallenge.checked;
+      await chrome.storage.local.set({ mentalChallenge });
+    });
+  }
+
+  // Activar/desactivar Blindaje Inmediato
+  if (toggleFastRedirect) {
+    toggleFastRedirect.addEventListener("change", async () => {
+      fastRedirect = toggleFastRedirect.checked;
+      await chrome.storage.local.set({ fastRedirect });
     });
   }
 
@@ -378,6 +450,7 @@ document.addEventListener("DOMContentLoaded", async () => {
 
   // Modal Upgrade
   function openOptModal() {
+    if (isPro) return; // Si ya eres PRO, no mostrar modal de compra
     if (optionsUpgradeModal) {
       optionsUpgradeModal.classList.remove("hidden");
       optModalFeedback.textContent = "";

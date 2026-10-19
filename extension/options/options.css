@@ -638,6 +638,40 @@ input[type="time"] {
   gap: 0.75rem;
 }
 
+.pro-active-banner {
+  background: linear-gradient(135deg, rgba(34, 197, 94, 0.08) 0%, rgba(16, 185, 129, 0.12) 100%);
+  border: 1px solid rgba(34, 197, 94, 0.3);
+  border-radius: 12px;
+  padding: 1rem 1.25rem;
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  margin-top: 1.25rem;
+}
+
+.pro-active-banner.hidden {
+  display: none !important;
+}
+
+.pro-active-icon {
+  font-size: 2.2rem;
+  line-height: 1;
+}
+
+.pro-active-text strong {
+  display: block;
+  font-size: 0.95rem;
+  color: #15803d;
+  font-weight: 700;
+}
+
+.pro-active-text p {
+  font-size: 0.8rem;
+  color: #166534;
+  margin-top: 0.2rem;
+  line-height: 1.35;
+}
+
 .setting-info strong {
   display: block;
   font-size: 0.85rem;
