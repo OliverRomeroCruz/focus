@@ -36,10 +36,6 @@ document.addEventListener("DOMContentLoaded", async () => {
   const btnConfirmEmergency = document.getElementById("btnConfirmEmergency");
   const freeFrictionBox = document.getElementById("freeFrictionBox");
   const emergencySecondsEl = document.getElementById("emergencySeconds");
-  const proChallengeBox = document.getElementById("proChallengeBox");
-  const mathQuestion = document.getElementById("mathQuestion");
-  const mathAnswer = document.getElementById("mathAnswer");
-  const mathFeedback = document.getElementById("mathFeedback");
   const btnCheckUnblock = document.getElementById("btnCheckUnblock");
 
   // Cargar Rango de la Cabra
@@ -232,80 +228,49 @@ document.addEventListener("DOMContentLoaded", async () => {
     }, 200);
   });
 
-  // Modal de pausa de emergencia (Freno 10s para Free o Reto Mental para PRO)
+  // Modal de pausa de emergencia (Freno consciente de 10 segundos)
   let emergencyInterval = null;
-  let currentSolution = null;
 
-  btnUnlockEmergency.addEventListener("click", async () => {
+  btnUnlockEmergency.addEventListener("click", () => {
     if (isStrict) {
       alert("Modo Estricto PRO activo:\n\nTu sesión de concentración está blindada y no admite pausas de emergencia. ¡Termina tu bloque de estudio!");
       return;
     }
 
-    const st = await chrome.storage.local.get(["isPro", "mentalChallenge"]);
-    const isUserPro = !!st.isPro || urlParams.get("isPro") === "1";
-    const useMentalChallenge = isUserPro && st.mentalChallenge !== false;
-
     emergencyModal.classList.remove("hidden");
     btnConfirmEmergency.disabled = true;
 
-    if (useMentalChallenge) {
-      // MODO PRO: Reto Mental Antiprocrastinación
-      if (freeFrictionBox) freeFrictionBox.classList.add("hidden");
-      if (proChallengeBox) proChallengeBox.classList.remove("hidden");
-
-      const num1 = Math.floor(Math.random() * 25) + 14;
-      const num2 = Math.floor(Math.random() * 25) + 11;
-      currentSolution = num1 + num2;
-
-      if (mathQuestion) mathQuestion.textContent = `${num1} + ${num2} = `;
-      if (mathAnswer) {
-        mathAnswer.value = "";
-        setTimeout(() => mathAnswer.focus(), 100);
-      }
-      if (mathFeedback) {
-        mathFeedback.textContent = "Resuelve el cálculo para desbloquear la salida";
-        mathFeedback.style.color = "var(--color-ink-muted)";
-      }
-
-      mathAnswer.oninput = () => {
-        const val = parseInt(mathAnswer.value.trim(), 10);
-        if (val === currentSolution) {
-          mathFeedback.textContent = "✓ ¡Cálculo correcto! Puedes desactivar el bloqueo.";
-          mathFeedback.style.color = "#10B981";
-          btnConfirmEmergency.disabled = false;
-        } else {
-          mathFeedback.textContent = "Cálculo incorrecto. Sigue intentando...";
-          mathFeedback.style.color = "#EF4444";
-          btnConfirmEmergency.disabled = true;
-        }
-      };
-
-    } else {
-      // MODO FREE: Freno Consciente de 10 segundos
-      if (proChallengeBox) proChallengeBox.classList.add("hidden");
-      if (freeFrictionBox) freeFrictionBox.classList.remove("hidden");
-
-      let count = 10;
+    let count = 10;
+    if (emergencySecondsEl) {
       emergencySecondsEl.textContent = count;
+      emergencySecondsEl.classList.remove("completed");
+    }
 
-      if (emergencyInterval) clearInterval(emergencyInterval);
-      emergencyInterval = setInterval(() => {
-        count--;
-        if (count <= 0) {
-          clearInterval(emergencyInterval);
+    if (emergencyInterval) clearInterval(emergencyInterval);
+    emergencyInterval = setInterval(() => {
+      count--;
+      if (count <= 0) {
+        clearInterval(emergencyInterval);
+        if (emergencySecondsEl) {
           emergencySecondsEl.textContent = "✓";
-          btnConfirmEmergency.disabled = false;
-        } else {
+          emergencySecondsEl.classList.add("completed");
+        }
+        btnConfirmEmergency.disabled = false;
+      } else {
+        if (emergencySecondsEl) {
           emergencySecondsEl.textContent = count;
         }
-      }, 1000);
-    }
+      }
+    }, 1000);
   });
 
   btnCancelEmergency.addEventListener("click", () => {
     if (emergencyInterval) clearInterval(emergencyInterval);
     emergencyModal.classList.add("hidden");
+    if (emergencySecondsEl) {
+      emergencySecondsEl.classList.remove("completed");
+      emergencySecondsEl.textContent = "10";
+    }
   });
 
   btnConfirmEmergency.addEventListener("click", () => {
