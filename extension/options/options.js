@@ -246,7 +246,6 @@ document.addEventListener("DOMContentLoaded", async () => {
       blockYoutubeShorts = toggleYoutubeShorts.checked;
       setToggleUI(toggleYoutubeShorts, statusYoutubeShorts, blockYoutubeShorts);
       await chrome.storage.local.set({ blockYoutubeShorts });
-      chrome.runtime.sendMessage({ action: "toggleYoutubeShorts" });
     });
   }
 

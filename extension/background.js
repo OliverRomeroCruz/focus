@@ -493,26 +493,37 @@ function isBlockedUrl(urlStr, blockedSites) {
 async function checkUrlBlocked(urlStr) {
   if (!urlStr) return { isBlocked: false, reason: "none" };
 
-  const status = await getFocusStatus();
-  if (!status.isActive) {
-    return { isBlocked: false, reason: "inactive" };
-  }
-
   const data = await chrome.storage.local.get([
+    "enabled",
     "blockedSites",
     "blockYoutubeShorts",
     "isPro",
     "activeProfile"
   ]);
 
+  if (data.enabled === false) {
+    return { isBlocked: false, reason: "disabled" };
+  }
+
   // 1. Bloqueo quirúrgico de YouTube Shorts (Focus Goat PRO)
+  // Aplica siempre que Focus Goat esté habilitado y blockYoutubeShorts sea PRO
   if (data.isPro && data.blockYoutubeShorts) {
     try {
       const u = new URL(urlStr);
-      if (u.hostname.includes("youtube.com") && u.pathname.startsWith("/shorts")) {
-        return { isBlocked: true, reason: "shorts" };
+      const isYt = u.hostname.includes("youtube.com") || u.hostname === "youtu.be";
+      if (isYt) {
+        if (u.pathname.startsWith("/shorts") || u.pathname.includes("/shorts/")) {
+          return { isBlocked: true, reason: "shorts" };
+        }
+        // Permitir clases y tutoriales en YouTube (no-shorts) aunque youtube.com figure en blockedSites
+        return { isBlocked: false, reason: "allowed_youtube_tutorials" };
       }
     } catch (e) {}
+  }
+
+  const status = await getFocusStatus();
+  if (!status.isActive) {
+    return { isBlocked: false, reason: "inactive" };
   }
 
   // 2. Comprobar perfil de concentración PRO
@@ -584,13 +595,20 @@ chrome.tabs.onUpdated.addListener(async (tabId, changeInfo, tab) => {
   if (urlToInspect.startsWith(blockPagePrefix)) return;
 
   const data = await chrome.storage.local.get([
+    "enabled",
     "strictMode",
     "isPro",
+    "blockYoutubeShorts",
     "studyStats"
   ]);
+
+  if (data.enabled === false) return;
+
   const status = await getFocusStatus();
 
-  if (!status.isActive) return;
+  // Si no hay sesión activa ni rutina, verificar si aplica el bloqueo de YouTube Shorts PRO
+  const isShortsCheck = data.isPro && data.blockYoutubeShorts;
+  if (!status.isActive && !isShortsCheck) return;
 
   const check = await checkUrlBlocked(urlToInspect);
   if (check.isBlocked) {
@@ -600,7 +618,8 @@ chrome.tabs.onUpdated.addListener(async (tabId, changeInfo, tab) => {
     await chrome.storage.local.set({ studyStats: stats });
 
     const isStrict = data.isPro && data.strictMode;
-    const redirectUrl = `${blockPagePrefix}?target=${encodeURIComponent(urlToInspect)}&reason=${encodeURIComponent(check.reason)}&remainingMs=${status.remainingMs}&strict=${isStrict ? "1" : "0"}&isPro=${data.isPro ? "1" : "0"}`;
+    const remainingMs = status.remainingMs || 0;
+    const redirectUrl = `${blockPagePrefix}?target=${encodeURIComponent(urlToInspect)}&reason=${encodeURIComponent(check.reason)}&remainingMs=${remainingMs}&strict=${isStrict ? "1" : "0"}&isPro=${data.isPro ? "1" : "0"}`;
     chrome.tabs.update(tabId, { url: redirectUrl });
   }
 });
@@ -884,7 +903,7 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
         sendResponse({ success: false, message: "El Bloqueo de YouTube Shorts requiere Focus Goat PRO." });
         return;
       }
-      const nextShorts = !res.blockYoutubeShorts;
+      const nextShorts = (request.value !== undefined) ? !!request.value : !res.blockYoutubeShorts;
       chrome.storage.local.set({ blockYoutubeShorts: nextShorts }).then(() => {
         sendResponse({ success: true, blockYoutubeShorts: nextShorts });
       });
