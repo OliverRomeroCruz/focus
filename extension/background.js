@@ -57,13 +57,15 @@ chrome.runtime.onInstalled.addListener(async () => {
   if (!data.quotes) updates.quotes = DEFAULT_QUOTES;
   if (data.sessionActive === undefined) updates.sessionActive = false;
   if (data.sessionEndTime === undefined) updates.sessionEndTime = 0;
-  if (data.sessionDurationMins === undefined) updates.sessionDurationMins = 0;
   if (data.sessionPaused === undefined) updates.sessionPaused = false;
   if (data.sessionPausedMs === undefined) updates.sessionPausedMs = 0;
+  if (data.sessionRemainingMs === undefined) updates.sessionRemainingMs = 0;
 
-  // Estado Freemium / PRO
-  if (data.isPro === undefined) updates.isPro = false;
-  if (data.strictMode === undefined) updates.strictMode = false;
+  // Estado Freemium / PRO (Resetear a Free por petición del usuario)
+  updates.isPro = false;
+  updates.licenseKey = "";
+  updates.strictMode = false;
+
   if (!data.studyStats) {
     updates.studyStats = {
       totalMinutes: 0,
@@ -115,6 +117,7 @@ async function getFocusStatus() {
     "sessionEndTime",
     "sessionPaused",
     "sessionPausedMs",
+    "sessionRemainingMs",
     "sessionDurationMins",
     "routines",
     "isPro",
@@ -152,8 +155,8 @@ async function getFocusStatus() {
     };
   }
 
-  // 1. Temporizador manual activo
-  if (data.sessionActive && data.sessionEndTime && data.sessionEndTime > now) {
+  // 1. Temporizador manual activo (solo si no está en pausa)
+  if (data.sessionActive && !data.sessionPaused && data.sessionEndTime && data.sessionEndTime > now) {
     return {
       isActive: true,
       isPaused: false,
@@ -164,7 +167,7 @@ async function getFocusStatus() {
       strictMode,
       studyStats: data.studyStats
     };
-  } else if (data.sessionActive && data.sessionEndTime && data.sessionEndTime <= now) {
+  } else if (data.sessionActive && !data.sessionPaused && data.sessionEndTime > 0 && data.sessionEndTime <= now) {
     // Sesión finalizada con éxito: registrar estadísticas
     await recordCompletedSession(data.sessionDurationMins || 25);
     await chrome.storage.local.set({ 
@@ -172,6 +175,7 @@ async function getFocusStatus() {
       sessionEndTime: 0, 
       sessionPaused: false, 
       sessionPausedMs: 0, 
+      sessionRemainingMs: 0,
       sessionDurationMins: 0 
     });
   }
@@ -313,11 +317,13 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
 
   if (request.action === "startSession") {
     const mins = request.minutes || 25;
-    const endTime = Date.now() + (mins * 60 * 1000);
+    const durationMs = mins * 60 * 1000;
+    const endTime = Date.now() + durationMs;
     chrome.storage.local.set({
       sessionActive: true,
       sessionPaused: false,
       sessionPausedMs: 0,
+      sessionRemainingMs: durationMs,
       sessionEndTime: endTime,
       sessionDurationMins: mins,
       enabled: true
@@ -329,12 +335,16 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
   }
 
   if (request.action === "pauseSession") {
-    chrome.storage.local.get(["sessionActive", "sessionEndTime", "sessionPausedMs"]).then((res) => {
-      if (res.sessionActive && res.sessionEndTime && res.sessionEndTime > Date.now()) {
-        const remaining = res.sessionEndTime - Date.now();
+    chrome.storage.local.get(["sessionActive", "sessionEndTime", "sessionRemainingMs", "sessionPausedMs"]).then((res) => {
+      let remaining = res.sessionRemainingMs || res.sessionPausedMs || 0;
+      if (res.sessionEndTime && res.sessionEndTime > Date.now()) {
+        remaining = res.sessionEndTime - Date.now();
+      }
+      if (res.sessionActive && remaining > 0) {
         chrome.storage.local.set({
           sessionPaused: true,
           sessionPausedMs: remaining,
+          sessionRemainingMs: remaining,
           sessionEndTime: 0
         }).then(() => {
           updateBadgeState();
@@ -348,13 +358,14 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
   }
 
   if (request.action === "resumeSession") {
-    chrome.storage.local.get(["sessionActive", "sessionPausedMs"]).then((res) => {
-      const pausedMs = res.sessionPausedMs || 0;
+    chrome.storage.local.get(["sessionActive", "sessionPausedMs", "sessionRemainingMs"]).then((res) => {
+      const pausedMs = res.sessionRemainingMs || res.sessionPausedMs || 0;
       if (res.sessionActive && pausedMs > 0) {
         const newEndTime = Date.now() + pausedMs;
         chrome.storage.local.set({
           sessionPaused: false,
           sessionPausedMs: 0,
+          sessionRemainingMs: pausedMs,
           sessionEndTime: newEndTime,
           enabled: true
         }).then(() => {
@@ -373,6 +384,7 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
       sessionActive: false,
       sessionPaused: false,
       sessionPausedMs: 0,
+      sessionRemainingMs: 0,
       sessionEndTime: 0,
       sessionDurationMins: 0
     }).then(() => {
@@ -383,22 +395,29 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
   }
 
   if (request.action === "toggleMaster") {
-    chrome.storage.local.get(["enabled", "sessionActive", "sessionEndTime", "sessionPaused", "sessionPausedMs"]).then((res) => {
+    chrome.storage.local.get(["enabled", "sessionActive", "sessionEndTime", "sessionPaused", "sessionPausedMs", "sessionRemainingMs"]).then((res) => {
       const nextState = !res.enabled;
       const updates = { enabled: nextState };
 
       if (!nextState) {
         // Al APAGAR: Si había una sesión activa corriendo, congelar exactamente el tiempo restante
-        if (res.sessionActive && res.sessionEndTime && res.sessionEndTime > Date.now()) {
+        let remaining = res.sessionRemainingMs || res.sessionPausedMs || 0;
+        if (res.sessionEndTime && res.sessionEndTime > Date.now()) {
+          remaining = res.sessionEndTime - Date.now();
+        }
+        if (res.sessionActive && remaining > 0) {
           updates.sessionPaused = true;
-          updates.sessionPausedMs = res.sessionEndTime - Date.now();
+          updates.sessionPausedMs = remaining;
+          updates.sessionRemainingMs = remaining;
           updates.sessionEndTime = 0; // Detiene el avance del reloj
         }
       } else {
         // Al ENCENDER: Si había tiempo congelado, restaurar la cuenta exactamente desde ese segundo
-        if (res.sessionActive && (res.sessionPausedMs || 0) > 0) {
+        const pausedMs = res.sessionRemainingMs || res.sessionPausedMs || 0;
+        if (res.sessionActive && pausedMs > 0) {
           updates.sessionPaused = false;
-          updates.sessionEndTime = Date.now() + res.sessionPausedMs;
+          updates.sessionEndTime = Date.now() + pausedMs;
+          updates.sessionRemainingMs = pausedMs;
           updates.sessionPausedMs = 0;
         }
       }
@@ -460,6 +479,15 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
     } else {
       sendResponse({ success: false, message: "Clave de licencia no válida." });
     }
+    return true;
+  }
+
+  // Desactivar Licencia PRO (volver a Free)
+  if (request.action === "deactivateLicense") {
+    chrome.storage.local.set({ isPro: false, licenseKey: "", strictMode: false }).then(() => {
+      updateBadgeState();
+      sendResponse({ success: true, isPro: false });
+    });
     return true;
   }
 

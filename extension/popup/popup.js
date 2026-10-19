@@ -95,7 +95,10 @@ document.addEventListener("DOMContentLoaded", async () => {
       if (remainingMs > 1000) {
         remainingMs -= 1000;
         popupCountdown.textContent = formatTime(remainingMs);
-        chrome.storage.local.set({ sessionRemainingMs: remainingMs });
+        chrome.storage.local.set({ 
+          sessionRemainingMs: remainingMs,
+          sessionPausedMs: remainingMs 
+        });
       } else {
         remainingMs = 0;
         popupCountdown.textContent = "00:00:00";
@@ -119,6 +122,7 @@ document.addEventListener("DOMContentLoaded", async () => {
       sessionActive: false,
       sessionPaused: false,
       sessionRemainingMs: 0,
+      sessionPausedMs: 0,
       sessionEndTime: 0
     });
 
@@ -181,16 +185,18 @@ document.addEventListener("DOMContentLoaded", async () => {
       "sessionActive",
       "sessionEndTime",
       "sessionPaused",
-      "sessionRemainingMs"
+      "sessionRemainingMs",
+      "sessionPausedMs"
     ]);
 
     const isEnabled = data.enabled !== false;
     masterToggle.checked = isEnabled;
+    const pausedMs = data.sessionRemainingMs || data.sessionPausedMs || 0;
 
     // CASO A: Sesión Pausada (Tiempo CONGELADO)
-    if (data.sessionActive && (data.sessionPaused || !isEnabled) && (data.sessionRemainingMs || 0) > 0) {
+    if (data.sessionActive && (data.sessionPaused || !isEnabled) && pausedMs > 0) {
       stopCountdownTicker();
-      remainingMs = data.sessionRemainingMs;
+      remainingMs = pausedMs;
       statusPanel.classList.add("is-active", "is-paused");
       statusTitle.textContent = "TIEMPO EN PAUSA";
       popupCountdown.textContent = formatTime(remainingMs);
@@ -253,6 +259,7 @@ document.addEventListener("DOMContentLoaded", async () => {
       sessionActive: true,
       sessionPaused: false,
       sessionRemainingMs: remainingMs,
+      sessionPausedMs: 0,
       sessionEndTime: endTime,
       sessionDurationMins: mins,
       enabled: true
@@ -262,7 +269,7 @@ document.addEventListener("DOMContentLoaded", async () => {
     chrome.runtime.sendMessage({ action: "updateBadge" });
   }
 
-  // 6. Pausar sesión (Congelado exacto instantáneo)
+  // 6. Pausar sesión (Congelado exacto instantáneo sin pérdida de segundos)
   async function pauseSession() {
     stopCountdownTicker();
     statusPanel.classList.add("is-active", "is-paused");
@@ -276,13 +283,14 @@ document.addEventListener("DOMContentLoaded", async () => {
       sessionActive: true,
       sessionPaused: true,
       sessionRemainingMs: remainingMs,
+      sessionPausedMs: remainingMs,
       sessionEndTime: 0
     });
 
     chrome.runtime.sendMessage({ action: "updateBadge" });
   }
 
-  // 7. Reanudar sesión (Continúa desde el mismo segundo)
+  // 7. Reanudar sesión (Continúa exactamente desde el mismo segundo)
   async function resumeSession() {
     if (remainingMs <= 0) return;
     const newEndTime = Date.now() + remainingMs;
@@ -300,6 +308,7 @@ document.addEventListener("DOMContentLoaded", async () => {
       sessionActive: true,
       sessionPaused: false,
       sessionRemainingMs: remainingMs,
+      sessionPausedMs: 0,
       sessionEndTime: newEndTime,
       enabled: true
     });
@@ -323,6 +332,7 @@ document.addEventListener("DOMContentLoaded", async () => {
       sessionActive: false,
       sessionPaused: false,
       sessionRemainingMs: 0,
+      sessionPausedMs: 0,
       sessionEndTime: 0,
       sessionDurationMins: 0
     });
@@ -471,16 +481,15 @@ document.addEventListener("DOMContentLoaded", async () => {
           }, 1000);
         });
       } else {
-        licenseFeedback.textContent = "Clave de licencia no válida (ej: GOAT2026 o OLIVER-PRO)";
+        licenseFeedback.textContent = "Clave de licencia no válida.";
         licenseFeedback.className = "license-feedback error";
       }
     });
   }
 
   function handleCheckout() {
-    alert("Redirigiendo a la pasarela de pago segura...\n\nNota de prueba: Puedes activar PRO al instante con la clave:\n👉 GOAT2026 o OLIVER-PRO");
+    alert("Redirigiendo a la pasarela de pago segura de Focus Goat PRO...");
     if (licenseKeyInput) {
-      licenseKeyInput.value = "GOAT2026";
       licenseKeyInput.focus();
     }
   }

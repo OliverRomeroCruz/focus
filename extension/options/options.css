@@ -562,6 +562,13 @@ input[type="time"] {
   margin-top: 0.2rem;
 }
 
+.pro-card-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+  flex-wrap: wrap;
+}
+
 .btn-upgrade-glow {
   padding: 0.55rem 1.2rem;
   background: var(--color-coral);
@@ -580,6 +587,25 @@ input[type="time"] {
 .btn-upgrade-glow:hover {
   filter: brightness(1.1);
   transform: translateY(-1px);
+}
+
+.btn-deactivate-pro {
+  padding: 0.55rem 1rem;
+  background: transparent;
+  color: #ef4444;
+  border: 1px solid rgba(239, 68, 68, 0.35);
+  border-radius: 8px;
+  font-family: var(--font-body);
+  font-size: 0.8rem;
+  font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: all 0.15s ease;
+}
+
+.btn-deactivate-pro:hover {
+  background: rgba(239, 68, 68, 0.08);
+  border-color: #ef4444;
 }
 
 .pro-settings-grid {

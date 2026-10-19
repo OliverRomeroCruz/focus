@@ -43,7 +43,10 @@
               <p>Desbloquea blindaje estricto sin escape, sitios ilimitados, todas tus rutinas y estadísticas avanzadas.</p>
             </div>
           </div>
-          <button type="button" class="btn-upgrade-glow" id="btnOptionsUpgrade">Mejorar a PRO</button>
+          <div class="pro-card-actions">
+            <button type="button" class="btn-upgrade-glow" id="btnOptionsUpgrade">Mejorar a PRO</button>
+            <button type="button" class="btn-deactivate-pro hidden" id="btnDeactivatePro">Volver al plan Free</button>
+          </div>
         </div>
 
         <div class="pro-settings-grid">
@@ -63,10 +66,10 @@
           <div class="pro-setting-item license-item">
             <div class="setting-info">
               <strong>Activar Clave de Licencia PRO</strong>
-              <p>Introduce tu clave de compra (Clave de prueba: <code>GOAT2026</code> o <code>OLIVER-PRO</code>).</p>
+              <p>Introduce tu clave de compra de Focus Goat PRO.</p>
             </div>
             <div class="license-form">
-              <input type="text" id="optLicenseInput" placeholder="Ej: GOAT2026" autocomplete="off">
+              <input type="text" id="optLicenseInput" placeholder="Introduce tu clave..." autocomplete="off">
               <button type="button" class="btn-primary" id="btnOptActivate">Activar</button>
             </div>
           </div>
@@ -201,7 +204,7 @@
         </div>
 
         <div class="license-form-row">
-          <input type="text" id="optModalKeyInput" placeholder="Clave (ej: GOAT2026)" autocomplete="off">
+          <input type="text" id="optModalKeyInput" placeholder="Introduce tu clave..." autocomplete="off">
           <button type="button" class="btn-activate-key" id="btnOptModalActivate">Activar</button>
         </div>
         <div class="license-feedback" id="optModalFeedback"></div>

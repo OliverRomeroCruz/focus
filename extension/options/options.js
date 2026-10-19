@@ -9,6 +9,7 @@ document.addEventListener("DOMContentLoaded", async () => {
   // Elementos PRO
   const planTag = document.getElementById("planTag");
   const btnOptionsUpgrade = document.getElementById("btnOptionsUpgrade");
+  const btnDeactivatePro = document.getElementById("btnDeactivatePro");
   const toggleStrictMode = document.getElementById("toggleStrictMode");
   const optLicenseInput = document.getElementById("optLicenseInput");
   const btnOptActivate = document.getElementById("btnOptActivate");
@@ -67,17 +68,34 @@ document.addEventListener("DOMContentLoaded", async () => {
       btnOptionsUpgrade.style.background = "#22c55e";
       btnOptionsUpgrade.style.boxShadow = "none";
       btnOptionsUpgrade.disabled = true;
+      if (btnDeactivatePro) btnDeactivatePro.classList.remove("hidden");
     } else {
       planTag.textContent = "PLAN GRATUITO";
       planTag.classList.remove("is-pro");
       btnOptionsUpgrade.textContent = "Mejorar a PRO";
       btnOptionsUpgrade.style.background = "var(--color-coral)";
       btnOptionsUpgrade.disabled = false;
+      if (btnDeactivatePro) btnDeactivatePro.classList.add("hidden");
     }
 
     toggleStrictMode.checked = isPro && strictMode;
     renderSites();
     renderRoutines();
+  }
+
+  // Desactivar PRO y volver al Plan Gratuito
+  if (btnDeactivatePro) {
+    btnDeactivatePro.addEventListener("click", async () => {
+      isPro = false;
+      strictMode = false;
+      await chrome.storage.local.set({ isPro: false, licenseKey: "", strictMode: false });
+      chrome.runtime.sendMessage({ action: "deactivateLicense" }, () => {
+        if (chrome.runtime.lastError) { /* ignore */ }
+      });
+      optLicenseFeedback.textContent = "Has vuelto al Plan Gratuito.";
+      optLicenseFeedback.className = "opt-license-feedback";
+      updateProUI();
+    });
   }
 
   // Activar Modo Estricto
@@ -159,7 +177,7 @@ document.addEventListener("DOMContentLoaded", async () => {
         if (onSuccess) setTimeout(onSuccess, 1000);
       });
     } else {
-      feedbackEl.textContent = "Clave de licencia no válida (ej: GOAT2026 o OLIVER-PRO)";
+      feedbackEl.textContent = "Clave de licencia no válida.";
       feedbackEl.className = feedbackEl.id === "optLicenseFeedback" ? "opt-license-feedback error" : "license-feedback error";
     }
   }
@@ -178,8 +196,7 @@ document.addEventListener("DOMContentLoaded", async () => {
 
   // Botones checkout en opciones
   function handleOptCheckout() {
-    alert("Redirigiendo a la pasarela de compra...\n\nNota de prueba: Puedes activar PRO con la clave:\n👉 GOAT2026 o OLIVER-PRO");
-    optModalKeyInput.value = "GOAT2026";
+    alert("Redirigiendo a la pasarela de compra segura de Focus Goat PRO...");
     optModalKeyInput.focus();
   }
   btnOptCheckoutMonthly.addEventListener("click", handleOptCheckout);
