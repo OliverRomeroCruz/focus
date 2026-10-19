@@ -50,11 +50,6 @@
       <span class="stat-pill" id="statMinutes">⏱️ 0 min</span>
     </div>
 
-    <!-- Indicador de Modo de Estudio -->
-    <div class="mode-status-pill hidden" id="modeStatusPill">
-      <span>🎓 Modo Solo Estudio (Whitelist)</span>
-    </div>
-
     <!-- Estado Actual -->
     <section class="status-panel" id="statusPanel">
       <div class="status-top">
@@ -69,19 +64,34 @@
       </div>
     </section>
 
-    <!-- Botones rápidos de sesión -->
+    <!-- Selector de Tiempo Exacto y Presets de Sesión -->
     <section class="quick-timers">
-      <span class="section-title">INICIAR SESIÓN RÁPIDA</span>
+      <div class="exact-time-header">
+        <span class="section-title">⏱️ TIEMPO EXACTO DE ESTUDIO</span>
+      </div>
+
+      <!-- Selector de Horas y Minutos exactos -->
+      <div class="exact-time-row">
+        <div class="exact-input-group">
+          <input type="number" id="customHours" min="0" max="12" value="0" placeholder="0">
+          <label for="customHours">h</label>
+        </div>
+        <span class="exact-sep">:</span>
+        <div class="exact-input-group">
+          <input type="number" id="customMins" min="0" max="59" value="30" placeholder="30">
+          <label for="customMins">min</label>
+        </div>
+        <button type="button" class="btn-custom-start" id="btnCustomStart">Empezar 30m</button>
+      </div>
+
+      <!-- Presets de un clic -->
       <div class="timer-grid">
         <button type="button" class="btn-timer" data-mins="15">15 min</button>
         <button type="button" class="btn-timer highlight" data-mins="25">25 min <em>(Pomodoro)</em></button>
         <button type="button" class="btn-timer" data-mins="45">45 min</button>
-        <button type="button" class="btn-timer" data-mins="60">60 min</button>
-      </div>
-
-      <div class="custom-timer-row">
-        <input type="number" id="customMins" placeholder="Min" min="1" max="360" value="30">
-        <button type="button" class="btn-custom-start" id="btnCustomStart">Empezar</button>
+        <button type="button" class="btn-timer" data-mins="60">1 hora</button>
+        <button type="button" class="btn-timer" data-mins="90">1h 30m</button>
+        <button type="button" class="btn-timer" data-mins="120">2 horas</button>
       </div>
     </section>
 
@@ -107,6 +117,26 @@
       </button>
     </footer>
 
+    <!-- Modal Reto Mental PRO en Popup (Mini Pantalla) -->
+    <div class="popup-mental-modal hidden" id="popupMentalModal">
+      <div class="popup-mental-card">
+        <div class="mental-badge">🧠 RETO MENTAL PRO</div>
+        <h3>¿Abandonar tu concentración?</h3>
+        <p class="mental-sub">Para pausar o desactivar el escudo, resuelve este cálculo:</p>
+        
+        <div class="popup-math-box">
+          <span class="popup-math-question" id="popupMathQuestion">28 + 19 = </span>
+          <input type="number" id="popupMathAnswer" placeholder="?" autocomplete="off">
+        </div>
+        <div class="popup-mental-feedback" id="popupMentalFeedback"></div>
+
+        <div class="popup-mental-buttons">
+          <button type="button" class="btn-mental-keep" id="btnMentalKeep">Seguir estudiando 🐐</button>
+          <button type="button" class="btn-mental-confirm" id="btnMentalConfirm">Rendirme y desactivar</button>
+        </div>
+      </div>
+    </div>
+
     <!-- Modal para Mejorar a Focus Goat PRO -->
     <div class="upgrade-modal hidden" id="upgradeModal">
       <div class="upgrade-modal-card">
@@ -118,10 +148,11 @@
         </div>
 
         <ul class="pro-perks-list">
-          <li>🎓 <strong>Modo Solo Estudio (Whitelist):</strong> Bloquea todo internet salvo tus apuntes.</li>
+          <li>🧠 <strong>Reto Mental en Mini Pantalla:</strong> Exige resolver una suma para apagar o pausar el tiempo.</li>
+          <li>🎯 <strong>Perfiles Temáticos:</strong> Estudio Máximo, Trabajo Ligero y Cero Redes Sociales.</li>
+          <li>🧹 <strong>Clean Sweep:</strong> Cierra automáticamente tus pestañas de distracción al iniciar.</li>
           <li>🎬 <strong>Anti-YouTube Shorts:</strong> Ve tutoriales y clases sin caer en reels.</li>
-          <li>🔒 <strong>Modo Estricto / Reto Mental:</strong> Blindaje anti-procrastinación.</li>
-          <li>👑 <strong>Evolución y Rango de la Cabra:</strong> Desbloquea accesorios para tu mascota.</li>
+          <li>🔒 <strong>Modo Estricto:</strong> Blindaje total sin pausas.</li>
           <li>✨ <strong>Sitios y Rutinas ilimitadas:</strong> Sin límites de páginas ni horarios.</li>
         </ul>
 

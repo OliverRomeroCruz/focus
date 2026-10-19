@@ -17,8 +17,17 @@ document.addEventListener("DOMContentLoaded", async () => {
   const blockCurrentText = document.getElementById("blockCurrentText");
   const btnOpenOptions = document.getElementById("btnOpenOptions");
   const timerButtons = document.querySelectorAll(".btn-timer");
+  const customHoursInput = document.getElementById("customHours");
   const customMinsInput = document.getElementById("customMins");
   const btnCustomStart = document.getElementById("btnCustomStart");
+
+  // Elementos Reto Mental en Mini Pantalla (PRO)
+  const popupMentalModal = document.getElementById("popupMentalModal");
+  const popupMathQuestion = document.getElementById("popupMathQuestion");
+  const popupMathAnswer = document.getElementById("popupMathAnswer");
+  const popupMentalFeedback = document.getElementById("popupMentalFeedback");
+  const btnMentalKeep = document.getElementById("btnMentalKeep");
+  const btnMentalConfirm = document.getElementById("btnMentalConfirm");
 
   // Elementos Freemium / PRO
   const planBadge = document.getElementById("planBadge");
@@ -29,7 +38,6 @@ document.addEventListener("DOMContentLoaded", async () => {
   const statRank = document.getElementById("statRank");
   const statStreak = document.getElementById("statStreak");
   const statMinutes = document.getElementById("statMinutes");
-  const modeStatusPill = document.getElementById("modeStatusPill");
   const licenseKeyInput = document.getElementById("licenseKeyInput");
   const btnActivateKey = document.getElementById("btnActivateKey");
   const licenseFeedback = document.getElementById("licenseFeedback");
@@ -78,16 +86,6 @@ document.addEventListener("DOMContentLoaded", async () => {
       if (statRank && res.rank) {
         statRank.textContent = `${res.rank.icon} ${res.rank.title.replace("Nivel ", "N")}`;
         statRank.title = `${res.rank.title} (${res.stats ? res.stats.totalMinutes : 0} min acumulados)`;
-      }
-    });
-
-    chrome.storage.local.get(["blockMode", "isPro"], (res) => {
-      if (modeStatusPill) {
-        if (res.isPro && res.blockMode === "whitelist") {
-          modeStatusPill.classList.remove("hidden");
-        } else {
-          modeStatusPill.classList.add("hidden");
-        }
       }
     });
   }
@@ -354,6 +352,29 @@ document.addEventListener("DOMContentLoaded", async () => {
       enabled: true
     });
 
+    // Clean Sweep PRO: Cierre automático de pestañas de distracción al arrancar
+    chrome.storage.local.get(["isPro", "cleanSweep", "blockedSites"], (res) => {
+      if (res.isPro && res.cleanSweep && res.blockedSites && res.blockedSites.length) {
+        chrome.tabs.query({}, (tabs) => {
+          tabs.forEach((tab) => {
+            if (tab.url) {
+              try {
+                const url = new URL(tab.url);
+                const host = url.hostname.toLowerCase().replace(/^www\./, "");
+                const isBlocked = res.blockedSites.some((s) => {
+                  const cleanS = s.trim().toLowerCase().replace(/^https?:\/\//, "").replace(/^www\./, "").replace(/\/.*$/, "");
+                  return host === cleanS || host.endsWith("." + cleanS);
+                });
+                if (isBlocked) {
+                  chrome.tabs.remove(tab.id);
+                }
+              } catch (e) {}
+            }
+          });
+        });
+      }
+    });
+
     startCountdownTicker();
     chrome.runtime.sendMessage({ action: "updateBadge" });
   }
@@ -441,42 +462,143 @@ document.addEventListener("DOMContentLoaded", async () => {
     chrome.runtime.sendMessage({ action: "updateBadge" });
   }
 
-  // Botón Pausar / Reanudar
+  // ==========================================
+  // RETO MENTAL PRO EN MINI PANTALLA
+  // ==========================================
+  let pendingInterruption = null;
+  let popupMentalSolution = 0;
+
+  function openPopupMentalModal() {
+    const n1 = Math.floor(Math.random() * 38) + 12; // 12..49
+    const n2 = Math.floor(Math.random() * 38) + 12; // 12..49
+    popupMentalSolution = n1 + n2;
+    if (popupMathQuestion) popupMathQuestion.textContent = `${n1} + ${n2} = `;
+    if (popupMathAnswer) {
+      popupMathAnswer.value = "";
+      setTimeout(() => popupMathAnswer.focus(), 80);
+    }
+    if (popupMentalFeedback) {
+      popupMentalFeedback.textContent = "";
+      popupMentalFeedback.className = "popup-mental-feedback";
+    }
+    if (popupMentalModal) popupMentalModal.classList.remove("hidden");
+  }
+
+  function closePopupMentalModal() {
+    if (popupMentalModal) popupMentalModal.classList.add("hidden");
+    if (pendingInterruption && pendingInterruption.type === "toggle_off") {
+      masterToggle.checked = true;
+    }
+    pendingInterruption = null;
+  }
+
+  if (btnMentalKeep) {
+    btnMentalKeep.addEventListener("click", closePopupMentalModal);
+  }
+
+  if (btnMentalConfirm) {
+    btnMentalConfirm.addEventListener("click", () => {
+      const userAns = parseInt(popupMathAnswer.value, 10);
+      if (userAns === popupMentalSolution) {
+        popupMentalFeedback.textContent = "✅ ¡Cálculo resuelto! Desactivando...";
+        popupMentalFeedback.className = "popup-mental-feedback success";
+        const actionToRun = pendingInterruption;
+        setTimeout(() => {
+          closePopupMentalModal();
+          if (actionToRun && actionToRun.callback) {
+            actionToRun.callback();
+          }
+        }, 350);
+      } else {
+        popupMentalFeedback.textContent = "❌ Cálculo incorrecto. ¡Sigue concentrado!";
+        popupMentalFeedback.className = "popup-mental-feedback error";
+        popupMathAnswer.value = "";
+        popupMathAnswer.focus();
+      }
+    });
+  }
+
+  if (popupMathAnswer) {
+    popupMathAnswer.addEventListener("keydown", (e) => {
+      if (e.key === "Enter") {
+        e.preventDefault();
+        btnMentalConfirm.click();
+      } else if (e.key === "Escape") {
+        closePopupMentalModal();
+      }
+    });
+  }
+
+  async function requestInterruption(type, callback) {
+    const data = await chrome.storage.local.get(["sessionActive", "isPro", "mentalChallenge", "strictMode"]);
+    if (!data.sessionActive) {
+      callback();
+      return;
+    }
+
+    // 1. Modo Estricto PRO activo
+    if (data.isPro && data.strictMode) {
+      alert("🔒 Modo Estricto PRO activo: No puedes pausar ni cancelar la sesión hasta que el tiempo llegue a 00:00.");
+      if (type === "toggle_off") masterToggle.checked = true;
+      return;
+    }
+
+    // 2. Reto Mental PRO activo
+    if (data.isPro && data.mentalChallenge !== false) {
+      pendingInterruption = { type, callback };
+      openPopupMentalModal();
+      return;
+    }
+
+    // Free o sin reto mental: ejecutar directamente
+    callback();
+  }
+
+  // Botón Pausar / Reanudar (con protección Reto Mental)
   btnPauseSession.addEventListener("click", () => {
     if (btnPauseSession.classList.contains("is-paused")) {
       resumeSession();
     } else {
-      pauseSession();
+      requestInterruption("pause", pauseSession);
     }
   });
 
-  // Botón Reiniciar
-  btnStopSession.addEventListener("click", resetSession);
+  // Botón Reiniciar (con protección Reto Mental)
+  btnStopSession.addEventListener("click", () => {
+    requestInterruption("stop", resetSession);
+  });
 
-  // Switch Master Toggle (Activar/Desactivar extensión)
+  // Switch Master Toggle (con protección Reto Mental)
   masterToggle.addEventListener("change", async () => {
     const isChecked = masterToggle.checked;
-    await chrome.storage.local.set({ enabled: isChecked });
 
     if (!isChecked) {
-      // Si el usuario apaga el escudo y hay una sesión activa, congelamos el tiempo
       const data = await chrome.storage.local.get(["sessionActive", "sessionPaused"]);
-      if (data.sessionActive && !data.sessionPaused) {
-        pauseSession();
-      } else {
-        syncTimerState();
+      if (data.sessionActive) {
+        requestInterruption("toggle_off", async () => {
+          await chrome.storage.local.set({ enabled: false });
+          if (!data.sessionPaused) {
+            pauseSession();
+          } else {
+            syncTimerState();
+          }
+          chrome.runtime.sendMessage({ action: "updateBadge" });
+        });
+        return;
       }
+      await chrome.storage.local.set({ enabled: false });
+      syncTimerState();
+      chrome.runtime.sendMessage({ action: "updateBadge" });
     } else {
-      // Si el usuario vuelve a encender el escudo y el tiempo estaba pausado, reanudamos
+      await chrome.storage.local.set({ enabled: true });
       const data = await chrome.storage.local.get(["sessionActive", "sessionPaused"]);
       if (data.sessionActive && data.sessionPaused) {
         resumeSession();
       } else {
         syncTimerState();
       }
+      chrome.runtime.sendMessage({ action: "updateBadge" });
     }
-
-    chrome.runtime.sendMessage({ action: "updateBadge" });
   });
 
   // Botones rápidos de temporizador
@@ -487,11 +609,36 @@ document.addEventListener("DOMContentLoaded", async () => {
     });
   });
 
-  // Temporizador personalizado
+  // Selector de Tiempo Exacto (Horas y Minutos)
+  function updateCustomButtonText() {
+    const hours = parseInt(customHoursInput ? customHoursInput.value : 0, 10) || 0;
+    const mins = parseInt(customMinsInput ? customMinsInput.value : 0, 10) || 0;
+    const total = hours * 60 + mins;
+    if (total <= 0) {
+      btnCustomStart.textContent = "Elige tiempo";
+      btnCustomStart.disabled = true;
+    } else {
+      btnCustomStart.disabled = false;
+      if (hours > 0 && mins > 0) {
+        btnCustomStart.textContent = `Empezar ${hours}h ${mins}m`;
+      } else if (hours > 0) {
+        btnCustomStart.textContent = `Empezar ${hours}h`;
+      } else {
+        btnCustomStart.textContent = `Empezar ${mins}m`;
+      }
+    }
+  }
+
+  if (customHoursInput) customHoursInput.addEventListener("input", updateCustomButtonText);
+  if (customMinsInput) customMinsInput.addEventListener("input", updateCustomButtonText);
+  updateCustomButtonText();
+
   btnCustomStart.addEventListener("click", () => {
-    const mins = parseInt(customMinsInput.value, 10);
-    if (mins && mins > 0) {
-      startNewSession(mins);
+    const hours = parseInt(customHoursInput ? customHoursInput.value : 0, 10) || 0;
+    const mins = parseInt(customMinsInput ? customMinsInput.value : 0, 10) || 0;
+    const total = hours * 60 + mins;
+    if (total > 0) {
+      startNewSession(total);
     }
   });
 

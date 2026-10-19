@@ -35,18 +35,6 @@ const DEFAULT_ROUTINES = [
   }
 ];
 
-const DEFAULT_WHITELIST_SITES = [
-  "notion.so",
-  "docs.google.com",
-  "drive.google.com",
-  "wikipedia.org",
-  "canvaslms.com",
-  "classroom.google.com",
-  "github.com",
-  "chatgpt.com",
-  "claude.ai"
-];
-
 // Sistema de Gamificación: Rangos y Niveles de la Cabra según minutos estudiados
 function getGoatRank(totalMinutes = 0) {
   if (totalMinutes >= 3600) {
@@ -67,8 +55,8 @@ chrome.runtime.onInstalled.addListener(async () => {
   const data = await chrome.storage.local.get([
     "enabled",
     "blockedSites",
-    "whitelistSites",
-    "blockMode",
+    "cleanSweep",
+    "activeProfile",
     "blockYoutubeShorts",
     "routines",
     "quotes",
@@ -83,8 +71,8 @@ chrome.runtime.onInstalled.addListener(async () => {
   const updates = {};
   if (data.enabled === undefined) updates.enabled = true;
   if (!data.blockedSites) updates.blockedSites = DEFAULT_BLOCKED_SITES;
-  if (!data.whitelistSites) updates.whitelistSites = DEFAULT_WHITELIST_SITES;
-  if (data.blockMode === undefined) updates.blockMode = "blacklist";
+  if (data.cleanSweep === undefined) updates.cleanSweep = true;
+  if (data.activeProfile === undefined) updates.activeProfile = "max";
   if (data.blockYoutubeShorts === undefined) updates.blockYoutubeShorts = false;
   if (!data.routines) {
     updates.routines = DEFAULT_ROUTINES;
@@ -501,25 +489,6 @@ function isBlockedUrl(urlStr, blockedSites) {
   }
 }
 
-// Comprueba si una URL está en la lista blanca de herramientas de estudio (Whitelist PRO)
-function isWhitelistedUrl(urlStr, whitelistSites) {
-  if (!urlStr) return false;
-  try {
-    const url = new URL(urlStr);
-    if (url.protocol !== "http:" && url.protocol !== "https:") return true;
-    if (url.hostname === chrome.runtime.id) return true;
-
-    const host = cleanDomainHost(url.hostname);
-    return (whitelistSites || DEFAULT_WHITELIST_SITES).some((site) => {
-      const cleanSite = cleanDomainHost(site);
-      if (!cleanSite) return false;
-      return host === cleanSite || host.endsWith("." + cleanSite);
-    });
-  } catch (e) {
-    return false;
-  }
-}
-
 // Comprueba de forma global si una URL debe estar bloqueada en este momento
 async function checkUrlBlocked(urlStr) {
   if (!urlStr) return { isBlocked: false, reason: "none" };
@@ -531,10 +500,9 @@ async function checkUrlBlocked(urlStr) {
 
   const data = await chrome.storage.local.get([
     "blockedSites",
-    "whitelistSites",
-    "blockMode",
     "blockYoutubeShorts",
-    "isPro"
+    "isPro",
+    "activeProfile"
   ]);
 
   // 1. Bloqueo quirúrgico de YouTube Shorts (Focus Goat PRO)
@@ -547,17 +515,39 @@ async function checkUrlBlocked(urlStr) {
     } catch (e) {}
   }
 
-  // 2. Comprobar modo de bloqueo
-  const isWhitelistMode = data.isPro && data.blockMode === "whitelist";
-  if (isWhitelistMode) {
-    const isAllowed = isWhitelistedUrl(urlStr, data.whitelistSites);
-    if (!isAllowed) {
-      return { isBlocked: true, reason: "whitelist" };
-    }
-  } else {
-    if (isBlockedUrl(urlStr, data.blockedSites || [])) {
-      return { isBlocked: true, reason: "blacklist" };
-    }
+  // 2. Comprobar perfil de concentración PRO
+  const profile = (data.isPro && data.activeProfile) ? data.activeProfile : "max";
+
+  // Perfil "work" (Trabajo Ligero): permite YouTube para música o tutoriales
+  if (profile === "work") {
+    try {
+      const u = new URL(urlStr);
+      const host = cleanDomainHost(u.hostname);
+      if (host === "youtube.com" || host.endsWith(".youtube.com") || host === "youtu.be") {
+        return { isBlocked: false, reason: "allowed_work_profile" };
+      }
+    } catch (e) {}
+  }
+
+  // Perfil "social" (Cero Redes Sociales): solo bloquea redes sociales de ocio
+  if (profile === "social") {
+    const SOCIAL_DOMAINS = [
+      "instagram.com", "tiktok.com", "twitter.com", "x.com",
+      "reddit.com", "facebook.com", "threads.net", "pinterest.com", "twitch.tv"
+    ];
+    try {
+      const u = new URL(urlStr);
+      const host = cleanDomainHost(u.hostname);
+      const isSocial = SOCIAL_DOMAINS.some((domain) => host === domain || host.endsWith("." + domain));
+      if (!isSocial) {
+        return { isBlocked: false, reason: "allowed_social_profile" };
+      }
+    } catch (e) {}
+  }
+
+  // Comprobar si está en blockedSites
+  if (isBlockedUrl(urlStr, data.blockedSites || [])) {
+    return { isBlocked: true, reason: "blacklist" };
   }
 
   return { isBlocked: false, reason: "allowed" };
@@ -887,21 +877,6 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
     return true;
   }
 
-  // Cambiar modo de bloqueo (Lista Negra vs Lista Blanca / Solo Estudio)
-  if (request.action === "setBlockMode") {
-    const targetMode = request.mode === "whitelist" ? "whitelist" : "blacklist";
-    chrome.storage.local.get(["isPro"]).then((res) => {
-      if (targetMode === "whitelist" && !res.isPro) {
-        sendResponse({ success: false, message: "El Modo Solo Estudio requiere Focus Goat PRO." });
-        return;
-      }
-      chrome.storage.local.set({ blockMode: targetMode }).then(() => {
-        sendResponse({ success: true, mode: targetMode });
-      });
-    });
-    return true;
-  }
-
   // Alternar bloqueo quirúrgico de YouTube Shorts
   if (request.action === "toggleYoutubeShorts") {
     chrome.storage.local.get(["isPro", "blockYoutubeShorts"]).then((res) => {
@@ -912,39 +887,6 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
       const nextShorts = !res.blockYoutubeShorts;
       chrome.storage.local.set({ blockYoutubeShorts: nextShorts }).then(() => {
         sendResponse({ success: true, blockYoutubeShorts: nextShorts });
-      });
-    });
-    return true;
-  }
-
-  // Gestión de sitios en lista blanca (Whitelist)
-  if (request.action === "addWhitelistSite" && request.domain) {
-    chrome.storage.local.get(["whitelistSites", "isPro"]).then((res) => {
-      if (!res.isPro) {
-        sendResponse({ success: false, message: "La Lista Blanca requiere Focus Goat PRO." });
-        return;
-      }
-      const current = res.whitelistSites || DEFAULT_WHITELIST_SITES;
-      const clean = request.domain.toLowerCase().trim();
-      if (!current.includes(clean)) {
-        current.push(clean);
-        chrome.storage.local.set({ whitelistSites: current }).then(() => {
-          sendResponse({ success: true, sites: current });
-        });
-      } else {
-        sendResponse({ success: false, message: "Ya está en la lista blanca" });
-      }
-    });
-    return true;
-  }
-
-  if (request.action === "removeWhitelistSite" && request.domain) {
-    chrome.storage.local.get(["whitelistSites"]).then((res) => {
-      let current = res.whitelistSites || DEFAULT_WHITELIST_SITES;
-      const clean = request.domain.toLowerCase().trim();
-      current = current.filter((s) => s !== clean);
-      chrome.storage.local.set({ whitelistSites: current }).then(() => {
-        sendResponse({ success: true, sites: current });
       });
     });
     return true;
@@ -975,10 +917,10 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
   }
 });
 
-// Desbloquear pestañas de forma reactiva cuando cambie la lista de bloqueo o el modo en almacenamiento
+// Desbloquear pestañas de forma reactiva cuando cambie la lista de bloqueo o el perfil en almacenamiento
 chrome.storage.onChanged.addListener((changes, area) => {
   if (area === "local") {
-    if (changes.blockedSites || changes.whitelistSites || changes.blockMode || changes.enabled || changes.isPro) {
+    if (changes.blockedSites || changes.activeProfile || changes.enabled || changes.isPro) {
       unblockTabsNoLongerBlocked();
     }
   }

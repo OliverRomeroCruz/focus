@@ -33,9 +33,11 @@ document.addEventListener("DOMContentLoaded", async () => {
   const btnTestSound = document.getElementById("btnTestSound");
   const toggleNotifications = document.getElementById("toggleNotifications");
   const toggleMentalChallenge = document.getElementById("toggleMentalChallenge");
+  const toggleCleanSweep = document.getElementById("toggleCleanSweep");
   const toggleFastRedirect = document.getElementById("toggleFastRedirect");
-  const tabModeBlacklist = document.getElementById("tabModeBlacklist");
-  const tabModeWhitelist = document.getElementById("tabModeWhitelist");
+  const tabProfileMax = document.getElementById("tabProfileMax");
+  const tabProfileWork = document.getElementById("tabProfileWork");
+  const tabProfileSocial = document.getElementById("tabProfileSocial");
   const optLicenseInput = document.getElementById("optLicenseInput");
   const btnOptActivate = document.getElementById("btnOptActivate");
   const optLicenseFeedback = document.getElementById("optLicenseFeedback");
@@ -49,20 +51,12 @@ document.addEventListener("DOMContentLoaded", async () => {
   const btnOptCheckoutMonthly = document.getElementById("btnOptCheckoutMonthly");
   const btnOptCheckoutLifetime = document.getElementById("btnOptCheckoutLifetime");
 
-  // Elementos Sitios Bloqueados (Lista Negra)
+  // Elementos Sitios Bloqueados
   const siteListEl = document.getElementById("siteList");
   const addSiteForm = document.getElementById("addSiteForm");
   const newSiteInput = document.getElementById("newSiteInput");
   const blockedCountEl = document.getElementById("blockedCount");
   const presetChipsEl = document.getElementById("presetChips");
-
-  // Elementos Lista Blanca (Whitelist PRO)
-  const whitelistCard = document.getElementById("whitelistCard");
-  const whitelistCount = document.getElementById("whitelistCount");
-  const addWhitelistForm = document.getElementById("addWhitelistForm");
-  const newWhitelistInput = document.getElementById("newWhitelistInput");
-  const whitelistPresets = document.getElementById("whitelistPresets");
-  const whitelistSiteList = document.getElementById("whitelistSiteList");
 
   // Elementos Rutinas
   const routineListEl = document.getElementById("routineList");
@@ -78,9 +72,9 @@ document.addEventListener("DOMContentLoaded", async () => {
   // Cargar estado inicial desde storage
   let state = await chrome.storage.local.get([
     "blockedSites",
-    "whitelistSites",
-    "blockMode",
     "blockYoutubeShorts",
+    "cleanSweep",
+    "activeProfile",
     "routines",
     "isPro",
     "strictMode",
@@ -91,9 +85,9 @@ document.addEventListener("DOMContentLoaded", async () => {
     "studyStats"
   ]);
   let blockedSites = state.blockedSites || [];
-  let whitelistSites = state.whitelistSites || [];
-  let blockMode = state.blockMode || "blacklist";
   let blockYoutubeShorts = !!state.blockYoutubeShorts;
+  let cleanSweep = state.cleanSweep !== false;
+  let activeProfile = state.activeProfile || "max";
   let routines = state.routines || [];
   let isPro = !!state.isPro;
   let strictMode = !!state.strictMode;
@@ -130,7 +124,7 @@ document.addEventListener("DOMContentLoaded", async () => {
     if (isPro) {
       planTag.textContent = "👑 PLAN PRO ACTIVO";
       planTag.classList.add("is-pro");
-      if (proSubtitle) proSubtitle.textContent = "¡Eres PRO! Tienes desbloqueadas todas las funciones de blindaje, modo solo estudio, sitios ilimitados y rutinas.";
+      if (proSubtitle) proSubtitle.textContent = "¡Eres PRO! Tienes desbloqueados los perfiles de concentración, reto mental antiprocrastinación, clean sweep y sitios ilimitados.";
 
       // Ocultar botón de compra y formulario de cupón
       if (btnOptionsUpgrade) btnOptionsUpgrade.classList.add("hidden");
@@ -143,7 +137,7 @@ document.addEventListener("DOMContentLoaded", async () => {
     } else {
       planTag.textContent = "PLAN GRATUITO";
       planTag.classList.remove("is-pro");
-      if (proSubtitle) proSubtitle.textContent = "Desbloquea blindaje estricto, modo solo estudio, bloqueo de YouTube Shorts y sitios ilimitados.";
+      if (proSubtitle) proSubtitle.textContent = "Desbloquea perfiles temáticos, reto mental en popup, cierre automático Clean Sweep y sitios ilimitados.";
 
       // Mostrar botón de compra y formulario de cupón
       if (btnOptionsUpgrade) {
@@ -164,16 +158,25 @@ document.addEventListener("DOMContentLoaded", async () => {
     if (toggleMentalChallenge) toggleMentalChallenge.checked = isPro ? mentalChallenge : false;
     if (toggleFastRedirect) toggleFastRedirect.checked = fastRedirect;
 
-    if (blockMode === "whitelist" && isPro) {
-      if (tabModeWhitelist) tabModeWhitelist.classList.add("active");
-      if (tabModeBlacklist) tabModeBlacklist.classList.remove("active");
-    } else {
-      if (tabModeBlacklist) tabModeBlacklist.classList.add("active");
-      if (tabModeWhitelist) tabModeWhitelist.classList.remove("active");
+    if (toggleStrictMode) toggleStrictMode.checked = isPro && strictMode;
+    if (toggleYoutubeShorts) toggleYoutubeShorts.checked = isPro && blockYoutubeShorts;
+    if (toggleCleanSweep) toggleCleanSweep.checked = isPro && cleanSweep;
+    if (toggleSoundAlert) toggleSoundAlert.checked = soundAlert;
+    if (toggleNotifications) toggleNotifications.checked = desktopNotifications;
+    if (toggleMentalChallenge) toggleMentalChallenge.checked = isPro ? mentalChallenge : false;
+    if (toggleFastRedirect) toggleFastRedirect.checked = fastRedirect;
+
+    if (tabProfileMax && tabProfileWork && tabProfileSocial) {
+      [tabProfileMax, tabProfileWork, tabProfileSocial].forEach((t) => {
+        if (t.dataset.profile === activeProfile) {
+          t.classList.add("active");
+        } else {
+          t.classList.remove("active");
+        }
+      });
     }
 
     renderSites();
-    renderWhitelist();
     renderRoutines();
     renderStatsAndRank();
   }
@@ -183,13 +186,11 @@ document.addEventListener("DOMContentLoaded", async () => {
     btnDeactivatePro.addEventListener("click", async () => {
       isPro = false;
       strictMode = false;
-      blockMode = "blacklist";
       blockYoutubeShorts = false;
       await chrome.storage.local.set({ 
         isPro: false, 
         licenseKey: "", 
         strictMode: false,
-        blockMode: "blacklist",
         blockYoutubeShorts: false
       });
       chrome.runtime.sendMessage({ action: "deactivateLicense" }, () => {
@@ -317,30 +318,43 @@ document.addEventListener("DOMContentLoaded", async () => {
     });
   }
 
-  // Selector de Modo de Concentración (Lista Negra vs Lista Blanca)
-  if (tabModeBlacklist) {
-    tabModeBlacklist.addEventListener("click", async () => {
-      blockMode = "blacklist";
-      tabModeBlacklist.classList.add("active");
-      if (tabModeWhitelist) tabModeWhitelist.classList.remove("active");
-      await chrome.storage.local.set({ blockMode: "blacklist" });
-      chrome.runtime.sendMessage({ action: "setBlockMode", mode: "blacklist" });
-    });
-  }
-
-  if (tabModeWhitelist) {
-    tabModeWhitelist.addEventListener("click", async () => {
+  // Activar/desactivar Clean Sweep PRO
+  if (toggleCleanSweep) {
+    toggleCleanSweep.addEventListener("change", async () => {
       if (!isPro) {
+        toggleCleanSweep.checked = false;
         openOptModal();
         return;
       }
-      blockMode = "whitelist";
-      tabModeWhitelist.classList.add("active");
-      if (tabModeBlacklist) tabModeBlacklist.classList.remove("active");
-      await chrome.storage.local.set({ blockMode: "whitelist" });
-      chrome.runtime.sendMessage({ action: "setBlockMode", mode: "whitelist" });
+      cleanSweep = toggleCleanSweep.checked;
+      await chrome.storage.local.set({ cleanSweep });
     });
   }
+
+  // Selector de Perfiles de Concentración Temáticos (PRO)
+  function selectProfile(profileId) {
+    if (!isPro) {
+      openOptModal();
+      return;
+    }
+    activeProfile = profileId;
+    chrome.storage.local.set({ activeProfile });
+    [tabProfileMax, tabProfileWork, tabProfileSocial].forEach((t) => {
+      if (!t) return;
+      if (t.dataset.profile === profileId) {
+        t.classList.add("active");
+      } else {
+        t.classList.remove("active");
+      }
+    });
+    chrome.runtime.sendMessage({ action: "profileChanged", profile: profileId }, () => {
+      if (chrome.runtime.lastError) {}
+    });
+  }
+
+  if (tabProfileMax) tabProfileMax.addEventListener("click", () => selectProfile("max"));
+  if (tabProfileWork) tabProfileWork.addEventListener("click", () => selectProfile("work"));
+  if (tabProfileSocial) tabProfileSocial.addEventListener("click", () => selectProfile("social"));
 
   // Rango GOAT y Gráfico Semanal
   function renderStatsAndRank() {
@@ -432,82 +446,6 @@ document.addEventListener("DOMContentLoaded", async () => {
         <span class="bar-day-name">${item.dayName}</span>
       `;
       weeklyBars.appendChild(col);
-    });
-  }
-
-  // Renderizado de Lista Blanca (Whitelist PRO)
-  function renderWhitelist() {
-    if (!whitelistSiteList) return;
-    whitelistSiteList.innerHTML = "";
-    if (whitelistCount) {
-      whitelistCount.textContent = `${whitelistSites.length} herramientas`;
-    }
-
-    if (!whitelistSites.length) {
-      whitelistSiteList.innerHTML = `<li style="grid-column: 1 / -1; text-align: center; color: #888; padding: 1rem;">No tienes herramientas autorizadas. Añade Notion, Docs, Canvas, etc.</li>`;
-      return;
-    }
-
-    whitelistSites.forEach((site) => {
-      const li = document.createElement("li");
-      li.className = "site-item";
-      li.innerHTML = `
-        <span class="site-domain" title="${site}">🎓 ${site}</span>
-        <button type="button" class="btn-remove" title="Eliminar ${site}">&times;</button>
-      `;
-
-      li.querySelector(".btn-remove").addEventListener("click", async () => {
-        if (!isPro) {
-          openOptModal();
-          return;
-        }
-        whitelistSites = whitelistSites.filter((s) => s !== site);
-        await chrome.storage.local.set({ whitelistSites });
-        chrome.runtime.sendMessage({ action: "removeWhitelistSite", domain: site });
-        renderWhitelist();
-      });
-
-      whitelistSiteList.appendChild(li);
-    });
-  }
-
-  if (addWhitelistForm) {
-    addWhitelistForm.addEventListener("submit", async (e) => {
-      e.preventDefault();
-      if (!isPro) {
-        openOptModal();
-        return;
-      }
-      const domain = cleanDomain(newWhitelistInput.value);
-      if (!domain) return;
-
-      if (!whitelistSites.includes(domain)) {
-        whitelistSites.push(domain);
-        await chrome.storage.local.set({ whitelistSites });
-        chrome.runtime.sendMessage({ action: "addWhitelistSite", domain });
-        renderWhitelist();
-        newWhitelistInput.value = "";
-      } else {
-        alert("Esta herramienta ya está en tu lista blanca.");
-      }
-    });
-  }
-
-  if (whitelistPresets) {
-    whitelistPresets.addEventListener("click", async (e) => {
-      const chip = e.target.closest(".chip");
-      if (!chip) return;
-      if (!isPro) {
-        openOptModal();
-        return;
-      }
-      const site = chip.dataset.site;
-      if (site && !whitelistSites.includes(site)) {
-        whitelistSites.push(site);
-        await chrome.storage.local.set({ whitelistSites });
-        chrome.runtime.sendMessage({ action: "addWhitelistSite", domain: site });
-        renderWhitelist();
-      }
     });
   }
 

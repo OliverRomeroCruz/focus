@@ -289,41 +289,224 @@ input:checked + .slider:before {
   background: #000;
 }
 
-.custom-timer-row {
+/* Selector de Tiempo Exacto */
+.exact-time-header {
   display: flex;
-  gap: 0.4rem;
-  margin-top: 0.2rem;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 0.15rem;
 }
 
-.custom-timer-row input {
-  flex: 1;
-  padding: 0.45rem 0.65rem;
-  border: 1px solid var(--color-ink-faint);
-  border-radius: 8px;
-  font-size: 0.8rem;
+.exact-time-row {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
   background: white;
+  border: 1px solid var(--color-ink-faint);
+  border-radius: 10px;
+  padding: 0.35rem 0.5rem;
+  margin-bottom: 0.45rem;
+}
+
+.exact-input-group {
+  display: flex;
+  align-items: center;
+  gap: 0.2rem;
+  flex: 1;
+}
+
+.exact-input-group input {
+  width: 100%;
+  padding: 0.35rem 0.4rem;
+  border: 1px solid transparent;
+  border-radius: 6px;
+  font-family: var(--font-title);
+  font-size: 0.95rem;
+  font-weight: 700;
+  text-align: center;
+  background: rgba(17, 17, 15, 0.04);
   color: var(--color-ink);
   outline: none;
+  transition: all 0.15s ease;
 }
 
-.custom-timer-row input:focus {
+.exact-input-group input:focus {
+  background: white;
   border-color: var(--color-coral);
+  box-shadow: 0 0 0 2px rgba(255, 110, 84, 0.2);
+}
+
+.exact-input-group label {
+  font-size: 0.72rem;
+  font-weight: 700;
+  color: var(--color-ink-muted);
+}
+
+.exact-sep {
+  font-family: var(--font-title);
+  font-weight: 800;
+  color: var(--color-ink-muted);
+  font-size: 1rem;
 }
 
 .btn-custom-start {
   padding: 0.45rem 0.85rem;
-  background: rgba(17, 17, 15, 0.08);
+  background: var(--color-ink);
+  color: var(--color-ivory);
   border: none;
   border-radius: 8px;
+  font-family: var(--font-body);
   font-size: 0.75rem;
-  font-weight: 600;
-  color: var(--color-ink);
+  font-weight: 700;
   cursor: pointer;
+  white-space: nowrap;
+  transition: all 0.15s ease;
 }
 
 .btn-custom-start:hover {
+  background: var(--color-coral);
+  transform: translateY(-1px);
+}
+
+/* Modal Reto Mental en Mini Pantalla */
+.popup-mental-modal {
+  position: absolute;
+  inset: 0;
+  background: rgba(17, 17, 15, 0.82);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+  z-index: 2000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1.25rem;
+}
+
+.popup-mental-modal.hidden {
+  display: none !important;
+}
+
+.popup-mental-card {
+  width: 100%;
+  background: #FAF8F5;
+  border: 1px solid rgba(255, 110, 84, 0.35);
+  border-radius: 16px;
+  padding: 1.25rem;
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.65rem;
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.3);
+}
+
+.mental-badge {
+  font-size: 0.625rem;
+  font-weight: 800;
+  letter-spacing: 0.1em;
+  padding: 0.2rem 0.5rem;
+  border-radius: 999px;
+  background: linear-gradient(135deg, #FF6E54 0%, #D84D35 100%);
+  color: white;
+}
+
+.popup-mental-card h3 {
+  font-family: var(--font-title);
+  font-size: 1.05rem;
+  font-weight: 700;
+  color: var(--color-ink);
+}
+
+.mental-sub {
+  font-size: 0.72rem;
+  color: var(--color-ink-muted);
+  line-height: 1.35;
+}
+
+.popup-math-box {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.4rem;
+  background: white;
+  border: 2px solid var(--color-ink-faint);
+  border-radius: 10px;
+  padding: 0.5rem 0.75rem;
+  width: 100%;
+}
+
+.popup-math-question {
+  font-family: var(--font-title);
+  font-size: 1.25rem;
+  font-weight: 800;
+  color: var(--color-ink);
+}
+
+#popupMathAnswer {
+  width: 60px;
+  padding: 0.25rem 0.4rem;
+  border: 2px solid var(--color-coral);
+  border-radius: 6px;
+  font-family: var(--font-title);
+  font-size: 1.25rem;
+  font-weight: 800;
+  text-align: center;
+  outline: none;
+}
+
+.popup-mental-feedback {
+  font-size: 0.75rem;
+  font-weight: 600;
+  min-height: 1.1rem;
+}
+
+.popup-mental-feedback.error {
+  color: #ef4444;
+}
+
+.popup-mental-feedback.success {
+  color: #10b981;
+}
+
+.popup-mental-buttons {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  width: 100%;
+}
+
+.btn-mental-keep {
+  padding: 0.55rem;
   background: var(--color-ink);
   color: var(--color-ivory);
+  border: none;
+  border-radius: 8px;
+  font-family: var(--font-body);
+  font-size: 0.78rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: background 0.15s ease;
+}
+
+.btn-mental-keep:hover {
+  background: #000;
+}
+
+.btn-mental-confirm {
+  padding: 0.4rem;
+  background: transparent;
+  color: #ef4444;
+  border: 1px solid rgba(239, 68, 68, 0.3);
+  border-radius: 8px;
+  font-family: var(--font-body);
+  font-size: 0.72rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.15s ease;
+}
+
+.btn-mental-confirm:hover {
+  background: rgba(239, 68, 68, 0.08);
 }
 
 /* Bloquear actual */

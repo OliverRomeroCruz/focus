@@ -1277,14 +1277,14 @@ input[type="time"] {
   grid-column: 1 / -1;
 }
 
-.mode-selector-tabs {
+.profile-selector-tabs, .mode-selector-tabs {
   display: flex;
   gap: 0.5rem;
   margin-top: 0.5rem;
   flex-wrap: wrap;
 }
 
-.mode-tab {
+.profile-tab, .mode-tab {
   flex: 1;
   min-width: 160px;
   padding: 0.6rem 0.9rem;
@@ -1302,12 +1302,12 @@ input[type="time"] {
   transition: all 0.15s ease;
 }
 
-.mode-tab:hover {
+.profile-tab:hover, .mode-tab:hover {
   border-color: var(--color-ink);
   color: var(--color-ink);
 }
 
-.mode-tab.active {
+.profile-tab.active, .mode-tab.active {
   background: var(--color-ink);
   color: var(--color-ivory);
   border-color: var(--color-ink);

@@ -146,11 +146,11 @@
             </label>
           </div>
 
-          <!-- 3. Reto Mental Antiprocrastinación -->
+          <!-- 3. Reto Mental Antiprocrastinación en Pantalla de Bloqueo y Mini Pantalla -->
           <div class="pro-setting-item">
             <div class="setting-info">
-              <strong>Reto Mental en Desbloqueo 🧠</strong>
-              <p>Exige resolver una suma matemática si intentas hacer una pausa de emergencia en la pantalla de bloqueo.</p>
+              <strong>Reto Mental en Desbloqueo y Mini Pantalla 🧠</strong>
+              <p>Exige resolver una suma matemática si intentas pausar el tiempo o desactivar el escudo en la pantalla de bloqueo o en la mini pantalla de Chrome.</p>
             </div>
             <label class="switch" title="Activar/desactivar reto matemático">
               <input type="checkbox" id="toggleMentalChallenge" checked>
@@ -158,7 +158,19 @@
             </label>
           </div>
 
-          <!-- 4. Redirección Inmediata Anti-Tentación -->
+          <!-- 4. Clean Sweep: Cierre Automático de Pestañas Distractoras al Iniciar -->
+          <div class="pro-setting-item">
+            <div class="setting-info">
+              <strong>Cierre Automático de Pestañas (Clean Sweep) 🧹</strong>
+              <p>Cierra al instante todas las pestañas de sitios prohibidos que ya tengas abiertas en cuanto inicias una sesión.</p>
+            </div>
+            <label class="switch" title="Activar/desactivar Clean Sweep">
+              <input type="checkbox" id="toggleCleanSweep" checked>
+              <span class="slider"></span>
+            </label>
+          </div>
+
+          <!-- 5. Redirección Inmediata Anti-Tentación -->
           <div class="pro-setting-item">
             <div class="setting-info">
               <strong>Blindaje Inmediato ⚡</strong>
@@ -170,23 +182,26 @@
             </label>
           </div>
 
-          <!-- 5. Selector de Modo de Bloqueo -->
+          <!-- 6. Perfiles de Concentración Temáticos (PRO) -->
           <div class="pro-setting-item full-width-item">
             <div class="setting-info">
-              <strong>Estrategia de Concentración:</strong>
-              <p>Elige entre bloquear sitios distractores o blindar tu navegador en Modo Solo Estudio.</p>
+              <strong>Perfil de Concentración Activo 🎯</strong>
+              <p>Elige el tipo de blindaje según lo que vayas a hacer hoy:</p>
             </div>
-            <div class="mode-selector-tabs">
-              <button type="button" class="mode-tab active" id="tabModeBlacklist">
-                <span>⛔ Lista Negra (Estándar)</span>
+            <div class="profile-selector-tabs">
+              <button type="button" class="profile-tab active" id="tabProfileMax" data-profile="max">
+                <span>🎓 Estudio Máximo (Todo Bloqueado)</span>
               </button>
-              <button type="button" class="mode-tab" id="tabModeWhitelist">
-                <span>🎓 Modo Solo Estudio (Whitelist PRO)</span>
+              <button type="button" class="profile-tab" id="tabProfileWork" data-profile="work">
+                <span>💼 Trabajo Ligero (Permite YouTube)</span>
+              </button>
+              <button type="button" class="profile-tab" id="tabProfileSocial" data-profile="social">
+                <span>📵 Cero Redes (Scroll Infinito)</span>
               </button>
             </div>
           </div>
 
-          <!-- 6. Activación de Cupón / Licencia (Oculto automáticamente si ya eres PRO) -->
+          <!-- 7. Activación de Cupón / Licencia (Oculto automáticamente si ya eres PRO) -->
           <div class="pro-setting-item license-item full-width-item" id="proLicenseSection">
             <div class="setting-info">
               <strong>Activar Cupón o Clave de Licencia PRO 🎟️</strong>
@@ -286,45 +301,7 @@
         </ul>
       </section>
 
-      <!-- Sección 2: Lista Blanca (Modo Solo Estudio - Whitelist PRO) -->
-      <section class="card-section whitelist-section" id="whitelistCard">
-        <div class="section-head">
-          <div class="section-title-group">
-            <div class="title-with-badge">
-              <h2>Herramientas Permitidas (Modo Solo Estudio)</h2>
-              <span class="plan-tag is-pro">PRO</span>
-            </div>
-            <p>En Modo Solo Estudio, todo internet queda bloqueado excepto los dominios autorizados en esta lista.</p>
-          </div>
-          <span class="badge-count" id="whitelistCount">0 herramientas</span>
-        </div>
-
-        <!-- Input para añadir nueva herramienta permitida -->
-        <form class="add-site-form" id="addWhitelistForm">
-          <input type="text" id="newWhitelistInput" placeholder="Ej: notion.so, drive.google.com, campus.universidad.es..." autocomplete="off">
-          <button type="submit" class="btn-primary" id="btnAddWhitelist">Añadir herramienta</button>
-        </form>
-
-        <!-- Sugerencias de herramientas -->
-        <div class="quick-presets">
-          <span class="preset-label">Herramientas comunes de estudio:</span>
-          <div class="preset-chips" id="whitelistPresets">
-            <button type="button" class="chip" data-site="notion.so">+ Notion</button>
-            <button type="button" class="chip" data-site="docs.google.com">+ Google Docs</button>
-            <button type="button" class="chip" data-site="wikipedia.org">+ Wikipedia</button>
-            <button type="button" class="chip" data-site="canvaslms.com">+ Canvas</button>
-            <button type="button" class="chip" data-site="chatgpt.com">+ ChatGPT</button>
-            <button type="button" class="chip" data-site="github.com">+ GitHub</button>
-          </div>
-        </div>
-
-        <!-- Lista de sitios permitidos -->
-        <ul class="site-list" id="whitelistSiteList">
-          <!-- Renderizado dinámico -->
-        </ul>
-      </section>
-
-      <!-- Sección 3: Rutinas Semanales -->
+      <!-- Sección 2: Rutinas Semanales -->
       <section class="card-section">
         <div class="section-head">
           <div class="section-title-group">
@@ -393,10 +370,11 @@
         </div>
 
         <ul class="pro-perks-list">
-          <li>🎓 <strong>Modo Solo Estudio (Whitelist):</strong> Bloquea todo internet salvo tus apuntes.</li>
+          <li>🧠 <strong>Reto Mental en Mini Pantalla:</strong> Exige resolver una suma para apagar o pausar el tiempo.</li>
+          <li>🎯 <strong>Perfiles Temáticos:</strong> Estudio Máximo, Trabajo Ligero y Cero Redes Sociales.</li>
+          <li>🧹 <strong>Clean Sweep:</strong> Cierra automáticamente tus pestañas de distracción al iniciar.</li>
           <li>🎬 <strong>Anti-YouTube Shorts:</strong> Ve tutoriales y clases sin caer en reels.</li>
-          <li>🔒 <strong>Modo Estricto / Reto Mental:</strong> Blindaje anti-procrastinación.</li>
-          <li>👑 <strong>Evolución y Rangos de la Cabra:</strong> Desbloquea accesorios para tu mascota.</li>
+          <li>🔒 <strong>Modo Estricto:</strong> Blindaje total sin pausas.</li>
           <li>✨ <strong>Sitios y Rutinas ilimitadas:</strong> Sin límites de páginas ni horarios.</li>
         </ul>
 

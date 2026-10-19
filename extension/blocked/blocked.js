@@ -41,7 +41,6 @@ document.addEventListener("DOMContentLoaded", async () => {
   const mathAnswer = document.getElementById("mathAnswer");
   const mathFeedback = document.getElementById("mathFeedback");
   const btnCheckUnblock = document.getElementById("btnCheckUnblock");
-  const whitelistAlertBox = document.getElementById("whitelistAlertBox");
 
   // Cargar Rango de la Cabra
   chrome.runtime.sendMessage({ action: "getStatsAndRank" }, (res) => {
@@ -55,17 +54,6 @@ document.addEventListener("DOMContentLoaded", async () => {
   if (reason === "shorts") {
     blockedTargetEl.textContent = "YOUTUBE SHORTS (BLOQUEO QUIRÚRGICO)";
     eyebrowTargetEl.textContent = "POZO DE DISTRACCIÓN DETECTADO (PRO)";
-  } else if (reason === "whitelist") {
-    if (whitelistAlertBox) whitelistAlertBox.classList.remove("hidden");
-    try {
-      const parsed = new URL(targetUrl);
-      const host = parsed.hostname.replace(/^www\./, "");
-      blockedTargetEl.textContent = `MODO SOLO ESTUDIO: ${host.toUpperCase()}`;
-      eyebrowTargetEl.textContent = "SITIO NO AUTORIZADO EN TUS APUNTES";
-    } catch (e) {
-      blockedTargetEl.textContent = "MODO SOLO ESTUDIO";
-      eyebrowTargetEl.textContent = "SITIO NO AUTORIZADO";
-    }
   } else if (targetUrl) {
     try {
       const parsed = new URL(targetUrl);
@@ -194,9 +182,6 @@ document.addEventListener("DOMContentLoaded", async () => {
           timerDisplayEl.textContent = "00:00:00";
           timerModeEl.textContent = "¡Sitio desbloqueado! Entrando...";
           window.location.replace(targetUrl);
-        } else if (res.reason === "whitelist") {
-          alert("Este sitio sigue bloqueado porque el 'Modo Solo Estudio (Whitelist PRO)' está activo. Añádelo a tu lista blanca en Opciones o cambia a Lista Negra estándar.");
-          btnCheckUnblock.innerHTML = "<span>¿Has eliminado este sitio de la lista? Haz clic para entrar ahora ➜</span>";
         } else {
           alert("Este sitio todavía figura en tu lista de sitios bloqueados o tu sesión de estudio continúa activa.");
           btnCheckUnblock.innerHTML = "<span>¿Has eliminado este sitio de la lista? Haz clic para entrar ahora ➜</span>";
@@ -218,7 +203,7 @@ document.addEventListener("DOMContentLoaded", async () => {
           window.location.replace(targetUrl);
         }
       }
-      if (changes.blockedSites || changes.blockMode || changes.whitelistSites || changes.enabled) {
+      if (changes.blockedSites || changes.activeProfile || changes.enabled) {
         checkUrlStillBlocked();
       }
     }
