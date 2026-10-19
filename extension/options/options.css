@@ -469,34 +469,6 @@ input[type="time"] {
   transform: translateX(16px);
 }
 
-/* Frases motivadoras */
-.quote-list {
-  list-style: none;
-  display: flex;
-  flex-direction: column;
-  gap: 0.5rem;
-  max-height: 320px;
-  overflow-y: auto;
-}
-
-.quote-item {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 1rem;
-  padding: 0.75rem 1rem;
-  background: #fafafa;
-  border: 1px solid var(--color-ink-faint);
-  border-radius: 10px;
-  font-family: var(--font-serif);
-  font-style: italic;
-  font-size: 0.95rem;
-}
-
-.quote-item span {
-  flex: 1;
-}
-
 @media (max-width: 600px) {
   .site-list {
     grid-template-columns: 1fr;

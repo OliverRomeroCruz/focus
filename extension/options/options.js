@@ -35,17 +35,10 @@ document.addEventListener("DOMContentLoaded", async () => {
   const routineEndInput = document.getElementById("routineEnd");
   const daysSelectorEl = document.getElementById("daysSelector");
 
-  // Elementos Frases
-  const quoteListEl = document.getElementById("quoteList");
-  const addQuoteForm = document.getElementById("addQuoteForm");
-  const newQuoteInput = document.getElementById("newQuoteInput");
-  const btnResetQuotes = document.getElementById("btnResetQuotes");
-
   // Cargar estado inicial desde storage
-  let state = await chrome.storage.local.get(["blockedSites", "routines", "quotes"]);
+  let state = await chrome.storage.local.get(["blockedSites", "routines"]);
   let blockedSites = state.blockedSites || [];
   let routines = state.routines || [];
-  let quotes = state.quotes || DEFAULT_QUOTES;
 
   function cleanDomain(input) {
     let domain = input.trim().toLowerCase();
@@ -202,51 +195,7 @@ document.addEventListener("DOMContentLoaded", async () => {
   });
 
 
-  // ==========================================
-  // 3. GESTIÓN DE FRASES MOTIVADORAS
-  // ==========================================
-  function renderQuotes() {
-    quoteListEl.innerHTML = "";
-    quotes.forEach((q, idx) => {
-      const li = document.createElement("li");
-      li.className = "quote-item";
-      li.innerHTML = `
-        <span>“${q}”</span>
-        <button type="button" class="btn-remove" title="Eliminar frase">&times;</button>
-      `;
-
-      li.querySelector(".btn-remove").addEventListener("click", async () => {
-        quotes.splice(idx, 1);
-        await chrome.storage.local.set({ quotes });
-        renderQuotes();
-      });
-
-      quoteListEl.appendChild(li);
-    });
-  }
-
-  addQuoteForm.addEventListener("submit", async (e) => {
-    e.preventDefault();
-    const text = newQuoteInput.value.trim();
-    if (!text) return;
-
-    quotes.unshift(text);
-    await chrome.storage.local.set({ quotes });
-    renderQuotes();
-    newQuoteInput.value = "";
-  });
-
-  btnResetQuotes.addEventListener("click", async () => {
-    if (confirm("¿Quieres restablecer las frases motivadoras originales?")) {
-      quotes = [...DEFAULT_QUOTES];
-      await chrome.storage.local.set({ quotes });
-      renderQuotes();
-    }
-  });
-
-
   // Inicializar renderizados
   renderSites();
   renderRoutines();
-  renderQuotes();
 });

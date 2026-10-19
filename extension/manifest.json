@@ -33,7 +33,8 @@
     {
       "resources": [
         "blocked/blocked.html",
-        "icons/*"
+        "icons/*",
+        "media/*"
       ],
       "matches": [
         "<all_urls>"

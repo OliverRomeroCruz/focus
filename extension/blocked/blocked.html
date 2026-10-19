@@ -6,98 +6,122 @@
   <title>FOCUS GOAT — ARE you sure?</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Anybody:ital,wght@0,700;1,400&family=Instrument+Sans:wght@400;500;600;700&family=Newsreader:ital,wght@1,400&display=swap">
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Anybody:ital,wdth,wght@0,75..125,400..700&family=Instrument+Sans:ital,wdth,wght@0,75..100,400..700&family=Newsreader:ital,wght@1,400&display=swap">
   <link rel="stylesheet" href="blocked.css">
 </head>
 <body>
 
-  <div class="block-container">
-    <!-- Marco principal -->
-    <main class="block-card">
+  <!-- Contenedor exterior idéntico a la web: margen 12px y radio 22px -->
+  <main class="hero-frame" id="hero">
 
-      <!-- Header de marca -->
-      <header class="block-header">
-        <div class="brand">
+    <!-- Capa multimedia: video en bucle de la cabra animada -->
+    <div class="hero-media-container" aria-hidden="true">
+      <video
+        class="hero-video"
+        autoplay
+        muted
+        loop
+        playsinline
+        preload="auto"
+      >
+        <source src="../media/goat-animacion.mp4" type="video/mp4">
+      </video>
+    </div>
+
+    <!-- Fade marfil localizado detrás del texto sin lavar el video -->
+    <div class="hero-fade-scrim" aria-hidden="true"></div>
+
+    <!-- Contenido editorial interactivo -->
+    <div class="hero-content">
+
+      <!-- Navegación mínima superior -->
+      <header class="section-nav hero-nav">
+        <div class="nav-brand">
           <img src="../icons/icon48.png" alt="Focus Goat" class="brand-logo-img">
           <span class="brand-name">FOCUS GOAT</span>
-          <span class="brand-sub">SYS·ESTUDIO</span>
+          <span class="brand-code">SYS·26</span>
         </div>
-        <div class="intercept-badge" id="interceptBadge">
-          <span class="pulse-dot"></span>
-          <span id="blockedTarget">SITIO BLOQUEADO</span>
+        <div class="nav-meta">
+          <span class="status-indicator alert">
+            <span class="status-dot"></span>
+            <span id="blockedTarget">ACCESO BLOQUEADO</span>
+          </span>
         </div>
       </header>
 
-      <!-- Título de impacto -->
-      <section class="headline-section">
-        <div class="headline-hero-row">
-          <img src="../icons/icon128.png" alt="Focus Goat Avatar" class="hero-goat-avatar">
-          <div class="headline-hero-text">
-            <h1 class="headline-title">
-              FOCUS GOAT /<br>
-              ARE <em>you sure?</em>
-            </h1>
-            <p class="headline-sub" id="sessionContext">
-              Sesión de estudio en curso. Tu concentración está blindada.
+      <!-- Bloque principal de texto a la izquierda -->
+      <div class="hero-body">
+        <div class="hero-editorial-block">
+          <span class="hero-eyebrow" id="eyebrowTarget">INTENTANDO ENTRAR A UNA DISTRACCIÓN</span>
+
+          <h1 class="section-title hero-title">
+            FOCUS GOAT /<br>
+            ARE <em>you sure?</em>
+          </h1>
+
+          <!-- Frase motivadora editorial -->
+          <div class="quote-editorial-wrapper">
+            <p class="section-copy hero-description" id="quoteText">
+              “El dolor de la disciplina pesa gramos; el del arrepentimiento, toneladas.”
             </p>
+            <button type="button" class="btn-pill-quote" id="btnRefreshQuote" title="Siguiente frase motivadora">
+              <span>Cambiar frase</span>
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67"/>
+              </svg>
+            </button>
           </div>
-        </div>
-      </section>
 
-      <!-- Bloque de Frase Motivadora -->
-      <section class="quote-card">
-        <div class="quote-icon">“</div>
-        <blockquote class="quote-text" id="quoteText">
-          Cargando dosis de motivación...
-        </blockquote>
-        <div class="quote-footer">
-          <span class="quote-author">Mentalidad GOAT</span>
-          <button type="button" class="btn-refresh-quote" id="btnRefreshQuote" title="Siguiente frase motivadora">
-            <span>Otra frase</span>
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-              <path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67"/>
-            </svg>
-          </button>
-        </div>
-      </section>
+          <!-- Temporizador cuenta atrás con estética de la web -->
+          <div class="countdown-hero-block">
+            <div class="countdown-header-row">
+              <span class="countdown-label">TIEMPO PARA PODER ENTRAR:</span>
+              <span class="countdown-mode-tag" id="timerMode">Sesión de estudio</span>
+            </div>
+            <div class="countdown-time" id="timerDisplay">00:00:00</div>
+          </div>
 
-      <!-- Temporizador en vivo -->
-      <section class="timer-section">
-        <div class="timer-label">TIEMPO RESTANTE DE BLOQUEO</div>
-        <div class="timer-display" id="timerDisplay">--:--:--</div>
-        <div class="timer-mode" id="timerMode">Cargando rutina...</div>
-      </section>
-
-      <!-- Acciones de salida -->
-      <footer class="block-actions">
-        <button type="button" class="btn-primary" id="btnStudy">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <polyline points="9 14 4 9 9 4"/>
-            <path d="M20 20v-7a4 4 0 0 0-4-4H4"/>
-          </svg>
-          <span>Cerrar y volver a estudiar</span>
-        </button>
-
-        <button type="button" class="btn-secondary" id="btnUnlockEmergency">
-          <span>Pausa de emergencia</span>
-        </button>
-      </footer>
-
-      <!-- Modal de confirmación consciente -->
-      <div class="emergency-modal hidden" id="emergencyModal">
-        <div class="modal-box">
-          <h3>¿Seguro que quieres romper el foco?</h3>
-          <p>Tomar una pausa impulsiva arruina el estado de flujo. Si de verdad lo necesitas, espera 5 segundos:</p>
-          <div class="countdown-circle" id="emergencySeconds">5</div>
-          <div class="modal-buttons">
-            <button type="button" class="btn-cancel" id="btnCancelEmergency">No, seguir estudiando</button>
-            <button type="button" class="btn-confirm-danger" id="btnConfirmEmergency" disabled>Desactivar bloqueo</button>
+          <!-- Acciones principales -->
+          <div class="hero-actions">
+            <button type="button" class="hero-button" id="btnStudy">
+              <span>Cerrar y volver a estudiar</span>
+              <svg class="button-arrow" width="14" height="14" viewBox="0 0 14 14" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+                <path d="M1.75 7H12.25M12.25 7L7.5 2.25M12.25 7L7.5 11.75" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
+              </svg>
+            </button>
+            <button type="button" class="emergency-link" id="btnUnlockEmergency">Pausa de emergencia</button>
           </div>
         </div>
       </div>
 
-    </main>
-  </div>
+      <!-- Borde inferior con telemetría y datos -->
+      <footer class="hero-footer section-copy">
+        <div class="telemetry-item">
+          <span class="telemetry-label">Instagram</span>
+          <a href="https://instagram.com/dumeclick" target="_blank" rel="noopener noreferrer" class="telemetry-value">@dumeclick</a>
+        </div>
+        <div class="telemetry-item">
+          <span class="telemetry-label">Modo</span>
+          <span class="telemetry-value" id="systemState">Escudo de concentración activo</span>
+        </div>
+      </footer>
+
+    </div>
+
+    <!-- Modal de confirmación consciente -->
+    <div class="emergency-modal hidden" id="emergencyModal">
+      <div class="modal-box">
+        <h3>¿Romper tu sesión de concentración?</h3>
+        <p>Entrar a esta web arruina tu estado de flujo. Si de verdad lo necesitas, espera 5 segundos:</p>
+        <div class="countdown-circle" id="emergencySeconds">5</div>
+        <div class="modal-buttons">
+          <button type="button" class="btn-cancel" id="btnCancelEmergency">No, seguir estudiando</button>
+          <button type="button" class="btn-confirm-danger" id="btnConfirmEmergency" disabled>Desactivar bloqueo</button>
+        </div>
+      </div>
+    </div>
+
+  </main>
 
   <script src="blocked.js"></script>
 </body>

@@ -1,18 +1,33 @@
 /**
- * FOCUS GOAT — Lógica de pantalla de bloqueo
+ * FOCUS GOAT — Lógica de pantalla de bloqueo con diseño idéntico a la web
  */
+
+const PREDETERMINED_QUOTES = [
+  "“El dolor de la disciplina pesa gramos; el del arrepentimiento, toneladas.”",
+  "“¿De verdad vas a tirar tu progreso por 5 minutos de dopamina barata?”",
+  "“Los que no tienen metas trabajan para los que sí las tienen. Concéntrate.”",
+  "“Lo que hagas hoy en silencio gritará mañana en tus resultados.”",
+  "“Los mediocres se distraen. Los GOATs construyen su legado.”",
+  "“Cierra esta pestaña. Tu futuro yo te lo agradecerá eternamente.”",
+  "“El examen o proyecto no se va a aprobar solo. Vuelve a la mesa.”",
+  "“No te detengas cuando estés cansado, detente cuando hayas terminado.”",
+  "“ARE you sure? La grandeza exige eliminar el ruido.”",
+  "“Tu mayor competidor está estudiando ahora mismo. ¿Y tú qué haces?”",
+  "“Cada minuto que pierdes aquí es un paso atrás en tu objetivo.”",
+  "“Domina tu mente o tu mente te dominará a ti.”"
+];
 
 document.addEventListener("DOMContentLoaded", async () => {
   const urlParams = new URLSearchParams(window.location.search);
   const targetUrl = urlParams.get("target") || "";
-  
+
   // Elementos del DOM
   const blockedTargetEl = document.getElementById("blockedTarget");
+  const eyebrowTargetEl = document.getElementById("eyebrowTarget");
   const quoteTextEl = document.getElementById("quoteText");
   const btnRefreshQuote = document.getElementById("btnRefreshQuote");
   const timerDisplayEl = document.getElementById("timerDisplay");
   const timerModeEl = document.getElementById("timerMode");
-  const sessionContextEl = document.getElementById("sessionContext");
   const btnStudy = document.getElementById("btnStudy");
   const btnUnlockEmergency = document.getElementById("btnUnlockEmergency");
   const emergencyModal = document.getElementById("emergencyModal");
@@ -20,72 +35,40 @@ document.addEventListener("DOMContentLoaded", async () => {
   const btnConfirmEmergency = document.getElementById("btnConfirmEmergency");
   const emergencySecondsEl = document.getElementById("emergencySeconds");
 
-  // Mostrar el dominio bloqueado
+  // Mostrar el dominio que el usuario intentaba abrir
   if (targetUrl) {
     try {
       const parsed = new URL(targetUrl);
-      blockedTargetEl.textContent = `⛔ ${parsed.hostname}`;
+      const host = parsed.hostname.replace(/^www\./, "");
+      blockedTargetEl.textContent = `BLOQUEADO: ${host.toUpperCase()}`;
+      eyebrowTargetEl.textContent = `INTENTANDO ACCEDER A ${host.toUpperCase()}`;
     } catch (e) {
-      blockedTargetEl.textContent = "⛔ SITIO DISTRACTOR";
+      blockedTargetEl.textContent = "ACCESO BLOQUEADO";
+      eyebrowTargetEl.textContent = "INTENTANDO ACCEDER A DISTRACCIÓN";
     }
   }
 
-  // Cargar frases motivadoras
-  let quotes = [];
-  const stored = await chrome.storage.local.get(["quotes"]);
-  if (stored.quotes && stored.quotes.length) {
-    quotes = stored.quotes;
-  } else {
-    quotes = [
-      "El dolor de la disciplina pesa gramos; el del arrepentimiento, toneladas.",
-      "¿De verdad vas a tirar tu progreso por 5 minutos de dopamina barata?",
-      "Los mediocres se distraen. Los GOATs construyen su legado.",
-      "Cierra esta pestaña. Tu futuro yo te lo agradecerá eternamente.",
-      "El examen o proyecto no se va a aprobar solo. Vuelve a la mesa."
-    ];
-  }
+  // Rotación de frases motivadoras predeterminadas
+  let currentQuoteIndex = Math.floor(Math.random() * PREDETERMINED_QUOTES.length);
 
-  function displayRandomQuote() {
+  function showQuote(index) {
     quoteTextEl.style.opacity = "0";
     setTimeout(() => {
-      const randomIdx = Math.floor(Math.random() * quotes.length);
-      quoteTextEl.textContent = quotes[randomIdx];
+      quoteTextEl.textContent = PREDETERMINED_QUOTES[index];
       quoteTextEl.style.opacity = "1";
     }, 200);
   }
 
-  displayRandomQuote();
-  btnRefreshQuote.addEventListener("click", displayRandomQuote);
+  showQuote(currentQuoteIndex);
 
-  // Inicializar temporizador con background
+  btnRefreshQuote.addEventListener("click", () => {
+    currentQuoteIndex = (currentQuoteIndex + 1) % PREDETERMINED_QUOTES.length;
+    showQuote(currentQuoteIndex);
+  });
+
+  // Temporizador en vivo conectado con el background service worker
   let remainingMs = 0;
   let timerInterval = null;
-
-  async function syncTimer() {
-    chrome.runtime.sendMessage({ action: "getStatus" }, (status) => {
-      if (!status || !status.isActive) {
-        timerDisplayEl.textContent = "00:00:00";
-        timerModeEl.textContent = "Sesión finalizada. ¡Buen trabajo!";
-        // Si ya no está bloqueado, redirigir al sitio original si se desea
-        setTimeout(() => {
-          if (targetUrl) window.location.href = targetUrl;
-        }, 1500);
-        return;
-      }
-
-      remainingMs = status.remainingMs;
-
-      if (status.reason === "routine") {
-        timerModeEl.textContent = `Rutina activa: ${status.routineName || "Horario de estudio"}`;
-        sessionContextEl.textContent = "Horario de rutina semanal activo. Elimina las distracciones.";
-      } else {
-        timerModeEl.textContent = "Temporizador de concentración";
-        sessionContextEl.textContent = "Sesión de estudio en curso. Tu concentración está blindada.";
-      }
-
-      updateDisplay();
-    });
-  }
 
   function formatTime(ms) {
     if (ms <= 0) return "00:00:00";
@@ -104,9 +87,31 @@ document.addEventListener("DOMContentLoaded", async () => {
     timerDisplayEl.textContent = formatTime(remainingMs);
   }
 
-  await syncTimer();
+  function syncTimer() {
+    chrome.runtime.sendMessage({ action: "getStatus" }, (status) => {
+      if (!status || !status.isActive) {
+        timerDisplayEl.textContent = "00:00:00";
+        timerModeEl.textContent = "Sesión finalizada. Desbloqueado.";
+        setTimeout(() => {
+          if (targetUrl) window.location.href = targetUrl;
+        }, 1200);
+        return;
+      }
 
-  // Cuenta atrás en tiempo real
+      remainingMs = status.remainingMs;
+
+      if (status.reason === "routine") {
+        timerModeEl.textContent = `Rutina semanal: ${status.routineName || "Estudio"}`;
+      } else {
+        timerModeEl.textContent = "Temporizador de sesión activo";
+      }
+
+      updateDisplay();
+    });
+  }
+
+  syncTimer();
+
   timerInterval = setInterval(() => {
     if (remainingMs > 1000) {
       remainingMs -= 1000;
@@ -118,15 +123,13 @@ document.addEventListener("DOMContentLoaded", async () => {
 
   // Botón "Cerrar y volver a estudiar"
   btnStudy.addEventListener("click", () => {
-    // Intentar cerrar la pestaña actual
     window.close();
-    // Respaldo si el navegador bloquea window.close()
     setTimeout(() => {
       window.location.href = "about:blank";
     }, 200);
   });
 
-  // Modal de pausa de emergencia con retardo de 5 segundos
+  // Modal de pausa de emergencia (con retardo de 5 segundos)
   let emergencyInterval = null;
 
   btnUnlockEmergency.addEventListener("click", () => {
@@ -153,8 +156,7 @@ document.addEventListener("DOMContentLoaded", async () => {
     emergencyModal.classList.add("hidden");
   });
 
-  btnConfirmEmergency.addEventListener("click", async () => {
-    // Desactivar temporalmente sesión
+  btnConfirmEmergency.addEventListener("click", () => {
     chrome.runtime.sendMessage({ action: "stopSession" }, () => {
       chrome.runtime.sendMessage({ action: "toggleMaster" }, () => {
         if (targetUrl) {
