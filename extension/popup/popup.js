@@ -1,6 +1,6 @@
 /**
  * FOCUS GOAT — Popup Controller
- * Control de sesiones, monetización PRO, sintetizador de audio ambiental Web Audio API y estadísticas.
+ * Control de sesiones, estado congelado durante pausas, sincronización PRO instantánea y audio ambiental Web Audio API.
  */
 
 document.addEventListener("DOMContentLoaded", async () => {
@@ -10,6 +10,7 @@ document.addEventListener("DOMContentLoaded", async () => {
   const statusTitle = document.getElementById("statusTitle");
   const popupCountdown = document.getElementById("popupCountdown");
   const statusDesc = document.getElementById("statusDesc");
+  const btnPauseSession = document.getElementById("btnPauseSession");
   const btnStopSession = document.getElementById("btnStopSession");
   const btnBlockCurrent = document.getElementById("btnBlockCurrent");
   const blockCurrentText = document.getElementById("blockCurrentText");
@@ -40,7 +41,69 @@ document.addEventListener("DOMContentLoaded", async () => {
   let isUserPro = false;
   let activeSoundType = "none";
 
-  // 1. Obtener la pestaña activa actual para el botón "Bloquear este sitio"
+  // Función para aplicar la apariencia visual PRO de inmediato
+  function applyProUI(isPro) {
+    isUserPro = isPro;
+    if (isPro) {
+      planBadge.textContent = "👑 PRO";
+      planBadge.classList.add("is-pro");
+      if (proBanner) proBanner.style.display = "none";
+    } else {
+      planBadge.textContent = "FREE";
+      planBadge.classList.remove("is-pro");
+      if (proBanner) proBanner.style.display = "flex";
+    }
+  }
+
+  // Función para actualizar las estadísticas visuales
+  function applyStatsUI(stats) {
+    if (!stats) return;
+    if (statStreak) {
+      const days = stats.streakDays || 1;
+      statStreak.textContent = `🔥 ${days} día${days > 1 ? "s" : ""} racha`;
+    }
+    if (statMinutes) {
+      const mins = stats.totalMinutes || 0;
+      statMinutes.textContent = `⏱️ ${mins} min enfocados`;
+    }
+  }
+
+  // 1. CARGA INICIAL DIRECTA DESDE STORAGE (Sin esperar respuestas del background)
+  const initialData = await chrome.storage.local.get([
+    "enabled",
+    "isPro",
+    "strictMode",
+    "studyStats",
+    "sessionActive",
+    "sessionEndTime",
+    "sessionPaused",
+    "sessionPausedMs"
+  ]);
+
+  isUserPro = !!initialData.isPro;
+  applyProUI(isUserPro);
+  masterToggle.checked = initialData.enabled !== false;
+  if (initialData.studyStats) {
+    applyStatsUI(initialData.studyStats);
+  }
+
+  // 2. SINCRONIZACIÓN EN TIEMPO REAL CON CAMBIOS DE STORAGE (Ej: activación desde options)
+  chrome.storage.onChanged.addListener((changes, area) => {
+    if (area === "local") {
+      if (changes.isPro !== undefined) {
+        applyProUI(!!changes.isPro.newValue);
+      }
+      if (changes.enabled !== undefined) {
+        masterToggle.checked = changes.enabled.newValue !== false;
+      }
+      if (changes.studyStats !== undefined) {
+        applyStatsUI(changes.studyStats.newValue);
+      }
+      syncUI();
+    }
+  });
+
+  // 3. Obtener la pestaña activa actual para el botón "Bloquear este sitio"
   try {
     const [activeTab] = await chrome.tabs.query({ active: true, currentWindow: true });
     if (activeTab && activeTab.url) {
@@ -56,17 +119,7 @@ document.addEventListener("DOMContentLoaded", async () => {
     btnBlockCurrent.style.display = "none";
   }
 
-  // 2. Cargar estado del master toggle
-  const storageData = await chrome.storage.local.get(["enabled"]);
-  masterToggle.checked = storageData.enabled !== false;
-
-  masterToggle.addEventListener("change", () => {
-    chrome.runtime.sendMessage({ action: "toggleMaster" }, () => {
-      syncUI();
-    });
-  });
-
-  // 3. Formateo de tiempo
+  // 4. Formateo de tiempo
   function formatTime(ms) {
     if (ms <= 0) return "00:00:00";
     const totalSecs = Math.floor(ms / 1000);
@@ -80,76 +133,107 @@ document.addEventListener("DOMContentLoaded", async () => {
     ].join(":");
   }
 
-  // 4. Sincronizar estado con background
+  // 5. Sincronizar estado completo con background y storage
   function syncUI() {
-    chrome.runtime.sendMessage({ action: "getStatus" }, (status) => {
-      if (!status) return;
+    chrome.storage.local.get([
+      "enabled",
+      "isPro",
+      "sessionActive",
+      "sessionEndTime",
+      "sessionPaused",
+      "sessionPausedMs",
+      "routines",
+      "studyStats"
+    ]).then((data) => {
+      isUserPro = !!data.isPro;
+      applyProUI(isUserPro);
+      if (data.studyStats) applyStatsUI(data.studyStats);
 
-      // Actualizar estado PRO
-      isUserPro = !!status.isPro;
-      if (isUserPro) {
-        planBadge.textContent = "👑 PRO";
-        planBadge.classList.add("is-pro");
-        if (proBanner) proBanner.style.display = "none";
-      } else {
-        planBadge.textContent = "FREE";
-        planBadge.classList.remove("is-pro");
-        if (proBanner) proBanner.style.display = "flex";
-      }
+      const isEnabled = data.enabled !== false;
+      masterToggle.checked = isEnabled;
 
-      // Actualizar estadísticas de estudio
-      if (status.studyStats) {
-        if (statStreak) {
-          const days = status.studyStats.streakDays || 1;
-          statStreak.textContent = `🔥 ${days} día${days > 1 ? "s" : ""} racha`;
-        }
-        if (statMinutes) {
-          const mins = status.studyStats.totalMinutes || 0;
-          statMinutes.textContent = `⏱️ ${mins} min enfocados`;
-        }
-      }
-
-      // Estado de enfoque
-      if (!masterToggle.checked || !status.isActive) {
-        statusPanel.classList.remove("is-active");
-        statusTitle.textContent = masterToggle.checked ? "ENFOQUE INACTIVO" : "ESCUDO DESACTIVADO";
-        popupCountdown.textContent = "00:00:00";
-        statusDesc.textContent = masterToggle.checked 
-          ? "Inicia una sesión de estudio para blindar tu concentración." 
-          : "La protección de sitios está pausada globalmente.";
-        btnStopSession.classList.add("hidden");
-        remainingMs = 0;
+      // CASO 1: Sesión Pausada (Tiempo CONGELADO sin bajar)
+      if (data.sessionActive && (data.sessionPaused || !isEnabled) && (data.sessionPausedMs || 0) > 0) {
+        statusPanel.classList.add("is-active");
+        statusPanel.classList.add("is-paused");
+        statusTitle.textContent = "SESIÓN PAUSADA";
+        remainingMs = data.sessionPausedMs;
+        popupCountdown.textContent = formatTime(remainingMs);
+        statusDesc.textContent = "Tiempo congelado. Pulsa Reanudar cuando vuelvas.";
+        btnPauseSession.classList.remove("hidden");
+        btnPauseSession.textContent = "▶ Reanudar";
+        btnPauseSession.classList.add("is-paused");
+        btnStopSession.classList.remove("hidden");
         return;
       }
 
-      statusPanel.classList.add("is-active");
-      remainingMs = status.remainingMs;
-      popupCountdown.textContent = formatTime(remainingMs);
-      btnStopSession.classList.remove("hidden");
-
-      if (status.reason === "routine") {
-        statusTitle.textContent = "RUTINA SEMANAL ACTIVA";
-        statusDesc.textContent = `Horario: ${status.routineName || "Estudio"}`;
-      } else {
+      // CASO 2: Sesión Activa contando
+      const now = Date.now();
+      if (isEnabled && data.sessionActive && data.sessionEndTime && data.sessionEndTime > now) {
+        statusPanel.classList.add("is-active");
+        statusPanel.classList.remove("is-paused");
         statusTitle.textContent = "SESIÓN DE ESTUDIO ACTIVA";
+        remainingMs = data.sessionEndTime - now;
+        popupCountdown.textContent = formatTime(remainingMs);
         statusDesc.textContent = "Sitios distractores bloqueados.";
+        btnPauseSession.classList.remove("hidden");
+        btnPauseSession.textContent = "⏸ Pausar";
+        btnPauseSession.classList.remove("is-paused");
+        btnStopSession.classList.remove("hidden");
+        return;
       }
+
+      // CASO 3: Enfoque Inactivo
+      statusPanel.classList.remove("is-active");
+      statusPanel.classList.remove("is-paused");
+      statusTitle.textContent = isEnabled ? "ENFOQUE INACTIVO" : "ESCUDO DESACTIVADO";
+      popupCountdown.textContent = "00:00:00";
+      statusDesc.textContent = isEnabled 
+        ? "Inicia una sesión de estudio para blindar tu concentración." 
+        : "La protección de sitios está pausada globalmente.";
+      btnPauseSession.classList.add("hidden");
+      btnStopSession.classList.add("hidden");
+      remainingMs = 0;
     });
   }
 
   syncUI();
 
-  // Tic de cuenta atrás
+  // Tic de cuenta atrás: SOLO baja si NO está pausado
   countdownInterval = setInterval(() => {
-    if (remainingMs > 1000) {
+    const isPaused = statusPanel.classList.contains("is-paused");
+    if (!isPaused && remainingMs > 1000) {
       remainingMs -= 1000;
       popupCountdown.textContent = formatTime(remainingMs);
-    } else if (remainingMs > 0) {
+    } else if (!isPaused && remainingMs > 0 && remainingMs <= 1000) {
       syncUI();
     }
   }, 1000);
 
-  // 5. Iniciar sesiones rápidas
+  // 6. Master Toggle (Activar/Desactivar extensión)
+  masterToggle.addEventListener("change", () => {
+    chrome.runtime.sendMessage({ action: "toggleMaster" }, () => {
+      syncUI();
+    });
+  });
+
+  // 7. Botón Pausar / Reanudar sesión
+  btnPauseSession.addEventListener("click", () => {
+    const isPaused = btnPauseSession.classList.contains("is-paused");
+    if (isPaused) {
+      // Reanudar
+      chrome.runtime.sendMessage({ action: "resumeSession" }, () => {
+        syncUI();
+      });
+    } else {
+      // Pausar
+      chrome.runtime.sendMessage({ action: "pauseSession" }, () => {
+        syncUI();
+      });
+    }
+  });
+
+  // 8. Iniciar sesiones rápidas
   timerButtons.forEach((btn) => {
     btn.addEventListener("click", () => {
       const mins = parseInt(btn.dataset.mins, 10);
@@ -171,14 +255,14 @@ document.addEventListener("DOMContentLoaded", async () => {
     }
   });
 
-  // 6. Detener sesión actual
+  // 9. Detener sesión actual por completo
   btnStopSession.addEventListener("click", () => {
     chrome.runtime.sendMessage({ action: "stopSession" }, () => {
       syncUI();
     });
   });
 
-  // 7. Bloquear sitio actual con control Freemium
+  // 10. Bloquear sitio actual con control Freemium (10 sitios)
   btnBlockCurrent.addEventListener("click", () => {
     if (!currentTabDomain) return;
 
@@ -196,13 +280,13 @@ document.addEventListener("DOMContentLoaded", async () => {
     });
   });
 
-  // 8. Abrir panel de opciones completo
+  // 11. Abrir panel de opciones completo
   btnOpenOptions.addEventListener("click", () => {
     chrome.runtime.openOptionsPage();
   });
 
   // ==========================================
-  // 9. MODAL DE MEJORA FOCUS GOAT PRO
+  // 12. MODAL DE MEJORA FOCUS GOAT PRO
   // ==========================================
   function openUpgradeModal() {
     if (upgradeModal) {
@@ -239,7 +323,7 @@ document.addEventListener("DOMContentLoaded", async () => {
     }
   });
 
-  // Activación de Clave de Licencia PRO
+  // Activación de Clave de Licencia PRO directa en Popup
   if (btnActivateKey) {
     btnActivateKey.addEventListener("click", () => {
       const key = (licenseKeyInput.value || "").trim();
@@ -264,6 +348,7 @@ document.addEventListener("DOMContentLoaded", async () => {
           chrome.runtime.sendMessage({ action: "activateLicense", key }, () => {
             if (chrome.runtime.lastError) { /* ignore */ }
           });
+          applyProUI(true);
           licenseFeedback.textContent = "¡Focus Goat PRO activado con éxito! 👑";
           licenseFeedback.className = "license-feedback success";
           setTimeout(() => {
@@ -280,8 +365,7 @@ document.addEventListener("DOMContentLoaded", async () => {
 
   // Pasarelas de compra (Checkout)
   function handleCheckout(plan) {
-    const testHint = "Redirigiendo a la pasarela de pago segura...\n\nNota de prueba: Puedes activar PRO al instante con la clave:\n👉 GOAT2026 o OLIVER-PRO";
-    alert(testHint);
+    alert("Redirigiendo a la pasarela de pago segura...\n\nNota de prueba: Puedes activar PRO al instante con la clave:\n👉 GOAT2026 o OLIVER-PRO");
     if (licenseKeyInput) {
       licenseKeyInput.value = "GOAT2026";
       licenseKeyInput.focus();
@@ -292,7 +376,7 @@ document.addEventListener("DOMContentLoaded", async () => {
   if (btnCheckoutLifetime) btnCheckoutLifetime.addEventListener("click", () => handleCheckout("lifetime"));
 
   // ==========================================
-  // 10. SINTETIZADOR DE AUDIO AMBIENTAL (Web Audio API)
+  // 13. SINTETIZADOR DE AUDIO AMBIENTAL (Web Audio API)
   // Generación pura y nativa en el navegador, 0 descargas MP3
   // ==========================================
   let audioCtx = null;
@@ -301,7 +385,7 @@ document.addEventListener("DOMContentLoaded", async () => {
   function stopAmbientSound() {
     if (activeAudioNodes) {
       try {
-        if (activeAudioNodes.gainNode) {
+        if (activeAudioNodes.gainNode && audioCtx) {
           activeAudioNodes.gainNode.gain.linearRampToValueAtTime(0.001, audioCtx.currentTime + 0.3);
         }
         setTimeout(() => {

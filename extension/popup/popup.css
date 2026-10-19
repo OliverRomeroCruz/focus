@@ -179,8 +179,37 @@ input:checked + .slider:before {
   line-height: 1.35;
 }
 
+.session-btn-row {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  margin-top: 0.4rem;
+}
+
+.btn-pause-session {
+  padding: 0.35rem 0.85rem;
+  font-size: 0.7rem;
+  font-weight: 600;
+  border: 1px solid var(--color-ink-faint);
+  color: var(--color-ink);
+  background: white;
+  border-radius: 999px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.btn-pause-session:hover {
+  background: rgba(17, 17, 15, 0.08);
+}
+
+.btn-pause-session.is-paused {
+  background: var(--color-coral);
+  color: white;
+  border-color: var(--color-coral);
+}
+
 .btn-stop-session {
-  margin-top: 0.5rem;
   padding: 0.35rem 0.85rem;
   font-size: 0.7rem;
   font-weight: 600;
@@ -193,6 +222,11 @@ input:checked + .slider:before {
 
 .btn-stop-session:hover {
   background: rgba(255, 110, 84, 0.15);
+}
+
+.status-panel.is-paused .status-indicator-dot {
+  background-color: #EAB308 !important;
+  box-shadow: 0 0 0 2px rgba(234, 179, 8, 0.3) !important;
 }
 
 .hidden {

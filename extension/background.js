@@ -58,6 +58,8 @@ chrome.runtime.onInstalled.addListener(async () => {
   if (data.sessionActive === undefined) updates.sessionActive = false;
   if (data.sessionEndTime === undefined) updates.sessionEndTime = 0;
   if (data.sessionDurationMins === undefined) updates.sessionDurationMins = 0;
+  if (data.sessionPaused === undefined) updates.sessionPaused = false;
+  if (data.sessionPausedMs === undefined) updates.sessionPausedMs = 0;
 
   // Estado Freemium / PRO
   if (data.isPro === undefined) updates.isPro = false;
@@ -111,6 +113,8 @@ async function getFocusStatus() {
     "enabled",
     "sessionActive",
     "sessionEndTime",
+    "sessionPaused",
+    "sessionPausedMs",
     "sessionDurationMins",
     "routines",
     "isPro",
@@ -118,34 +122,57 @@ async function getFocusStatus() {
     "studyStats"
   ]);
 
-  if (data.enabled === false) {
-    return { 
-      isActive: false, 
-      reason: "disabled", 
-      remainingMs: 0,
-      isPro: !!data.isPro,
-      strictMode: !!data.strictMode,
+  const isPro = !!data.isPro;
+  const strictMode = !!data.strictMode;
+  const now = Date.now();
+
+  // Si la sesión está pausada manualmente o por masterToggle
+  if (data.sessionActive && (data.sessionPaused || data.enabled === false) && (data.sessionPausedMs || 0) > 0) {
+    return {
+      isActive: false,
+      isPaused: true,
+      reason: "paused",
+      remainingMs: data.sessionPausedMs,
+      isPro,
+      strictMode,
       studyStats: data.studyStats
     };
   }
 
-  const now = Date.now();
+  if (data.enabled === false) {
+    return { 
+      isActive: false, 
+      isPaused: false,
+      reason: "disabled", 
+      remainingMs: 0,
+      isPro,
+      strictMode,
+      studyStats: data.studyStats
+    };
+  }
 
-  // 1. Temporizador manual
+  // 1. Temporizador manual activo
   if (data.sessionActive && data.sessionEndTime && data.sessionEndTime > now) {
     return {
       isActive: true,
+      isPaused: false,
       reason: "timer",
       remainingMs: data.sessionEndTime - now,
       endTime: data.sessionEndTime,
-      isPro: !!data.isPro,
-      strictMode: !!data.strictMode,
+      isPro,
+      strictMode,
       studyStats: data.studyStats
     };
   } else if (data.sessionActive && data.sessionEndTime && data.sessionEndTime <= now) {
     // Sesión finalizada con éxito: registrar estadísticas
     await recordCompletedSession(data.sessionDurationMins || 25);
-    await chrome.storage.local.set({ sessionActive: false, sessionEndTime: 0, sessionDurationMins: 0 });
+    await chrome.storage.local.set({ 
+      sessionActive: false, 
+      sessionEndTime: 0, 
+      sessionPaused: false, 
+      sessionPausedMs: 0, 
+      sessionDurationMins: 0 
+    });
   }
 
   // 2. Rutina programada
@@ -153,22 +180,24 @@ async function getFocusStatus() {
   if (activeRoutine) {
     return {
       isActive: true,
+      isPaused: false,
       reason: "routine",
       routineName: activeRoutine.routine.name,
       remainingMs: activeRoutine.remainingMinutes * 60 * 1000,
       remainingMinutes: activeRoutine.remainingMinutes,
-      isPro: !!data.isPro,
-      strictMode: !!data.strictMode,
+      isPro,
+      strictMode,
       studyStats: data.studyStats
     };
   }
 
   return { 
     isActive: false, 
+    isPaused: false,
     reason: "idle", 
     remainingMs: 0,
-    isPro: !!data.isPro,
-    strictMode: !!data.strictMode,
+    isPro,
+    strictMode,
     studyStats: data.studyStats
   };
 }
@@ -244,6 +273,10 @@ async function updateBadgeState() {
     const mins = Math.max(1, Math.ceil(status.remainingMs / (60 * 1000)));
     chrome.action.setBadgeText({ text: mins > 99 ? "GOAT" : `${mins}m` });
     chrome.action.setBadgeBackgroundColor({ color: "#FF6E54" });
+  } else if (status.isPaused) {
+    const mins = Math.max(1, Math.ceil(status.remainingMs / (60 * 1000)));
+    chrome.action.setBadgeText({ text: `${mins}m` });
+    chrome.action.setBadgeBackgroundColor({ color: "#71717A" }); // Gris neutro durante pausa
   } else {
     chrome.action.setBadgeText({ text: "" });
   }
@@ -267,6 +300,8 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
     const endTime = Date.now() + (mins * 60 * 1000);
     chrome.storage.local.set({
       sessionActive: true,
+      sessionPaused: false,
+      sessionPausedMs: 0,
       sessionEndTime: endTime,
       sessionDurationMins: mins,
       enabled: true
@@ -277,9 +312,51 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
     return true;
   }
 
+  if (request.action === "pauseSession") {
+    chrome.storage.local.get(["sessionActive", "sessionEndTime", "sessionPausedMs"]).then((res) => {
+      if (res.sessionActive && res.sessionEndTime && res.sessionEndTime > Date.now()) {
+        const remaining = res.sessionEndTime - Date.now();
+        chrome.storage.local.set({
+          sessionPaused: true,
+          sessionPausedMs: remaining,
+          sessionEndTime: 0
+        }).then(() => {
+          updateBadgeState();
+          sendResponse({ success: true, remainingMs: remaining });
+        });
+      } else {
+        sendResponse({ success: false });
+      }
+    });
+    return true;
+  }
+
+  if (request.action === "resumeSession") {
+    chrome.storage.local.get(["sessionActive", "sessionPausedMs"]).then((res) => {
+      const pausedMs = res.sessionPausedMs || 0;
+      if (res.sessionActive && pausedMs > 0) {
+        const newEndTime = Date.now() + pausedMs;
+        chrome.storage.local.set({
+          sessionPaused: false,
+          sessionPausedMs: 0,
+          sessionEndTime: newEndTime,
+          enabled: true
+        }).then(() => {
+          updateBadgeState();
+          sendResponse({ success: true, endTime: newEndTime });
+        });
+      } else {
+        sendResponse({ success: false });
+      }
+    });
+    return true;
+  }
+
   if (request.action === "stopSession") {
     chrome.storage.local.set({
       sessionActive: false,
+      sessionPaused: false,
+      sessionPausedMs: 0,
       sessionEndTime: 0,
       sessionDurationMins: 0
     }).then(() => {
@@ -290,9 +367,27 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
   }
 
   if (request.action === "toggleMaster") {
-    chrome.storage.local.get(["enabled"]).then((res) => {
+    chrome.storage.local.get(["enabled", "sessionActive", "sessionEndTime", "sessionPaused", "sessionPausedMs"]).then((res) => {
       const nextState = !res.enabled;
-      chrome.storage.local.set({ enabled: nextState }).then(() => {
+      const updates = { enabled: nextState };
+
+      if (!nextState) {
+        // Al APAGAR: Si había una sesión activa corriendo, congelar exactamente el tiempo restante
+        if (res.sessionActive && res.sessionEndTime && res.sessionEndTime > Date.now()) {
+          updates.sessionPaused = true;
+          updates.sessionPausedMs = res.sessionEndTime - Date.now();
+          updates.sessionEndTime = 0; // Detiene el avance del reloj
+        }
+      } else {
+        // Al ENCENDER: Si había tiempo congelado, restaurar la cuenta exactamente desde ese segundo
+        if (res.sessionActive && (res.sessionPausedMs || 0) > 0) {
+          updates.sessionPaused = false;
+          updates.sessionEndTime = Date.now() + res.sessionPausedMs;
+          updates.sessionPausedMs = 0;
+        }
+      }
+
+      chrome.storage.local.set(updates).then(() => {
         updateBadgeState();
         sendResponse({ enabled: nextState });
       });
