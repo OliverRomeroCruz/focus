@@ -478,6 +478,27 @@ input:checked + .slider:before {
   color: var(--color-ink);
 }
 
+.stat-pill.rank-pill {
+  background: rgba(255, 110, 84, 0.08);
+  border-color: rgba(255, 110, 84, 0.3);
+  color: var(--color-coral);
+  font-weight: 700;
+}
+
+.mode-status-pill {
+  background: var(--color-ink);
+  color: white;
+  font-size: 0.65rem;
+  font-weight: 700;
+  padding: 0.3rem 0.6rem;
+  border-radius: 6px;
+  text-align: center;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.4rem;
+}
+
 /* ==========================================================================
    MODAL DE MEJORA FOCUS GOAT PRO
    ========================================================================== */

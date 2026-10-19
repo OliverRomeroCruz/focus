@@ -21,6 +21,13 @@
   "background": {
     "service_worker": "background.js"
   },
+  "content_scripts": [
+    {
+      "matches": ["*://*.youtube.com/*"],
+      "js": ["content_scripts/yt_shorts.js"],
+      "run_at": "document_start"
+    }
+  ],
   "permissions": [
     "storage",
     "tabs",

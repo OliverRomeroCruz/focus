@@ -6,11 +6,28 @@
 const DAY_NAMES = ["Dom", "Lun", "Mar", "Mié", "Jue", "Vie", "Sáb"];
 
 document.addEventListener("DOMContentLoaded", async () => {
+  // Elementos Rango GOAT & Estadísticas
+  const rankIcon = document.getElementById("rankIcon");
+  const rankBadge = document.getElementById("rankBadge");
+  const rankTitle = document.getElementById("rankTitle");
+  const rankXpLabel = document.getElementById("rankXpLabel");
+  const rankXpBar = document.getElementById("rankXpBar");
+  const rankDesc = document.getElementById("rankDesc");
+  const statStreakDays = document.getElementById("statStreakDays");
+  const statTotalHours = document.getElementById("statTotalHours");
+  const statBlockedAttempts = document.getElementById("statBlockedAttempts");
+  const statSessionsDone = document.getElementById("statSessionsDone");
+  const chartWeekTotal = document.getElementById("chartWeekTotal");
+  const weeklyBars = document.getElementById("weeklyBars");
+
   // Elementos PRO
   const planTag = document.getElementById("planTag");
   const btnOptionsUpgrade = document.getElementById("btnOptionsUpgrade");
   const btnDeactivatePro = document.getElementById("btnDeactivatePro");
   const toggleStrictMode = document.getElementById("toggleStrictMode");
+  const toggleYoutubeShorts = document.getElementById("toggleYoutubeShorts");
+  const tabModeBlacklist = document.getElementById("tabModeBlacklist");
+  const tabModeWhitelist = document.getElementById("tabModeWhitelist");
   const optLicenseInput = document.getElementById("optLicenseInput");
   const btnOptActivate = document.getElementById("btnOptActivate");
   const optLicenseFeedback = document.getElementById("optLicenseFeedback");
@@ -24,12 +41,20 @@ document.addEventListener("DOMContentLoaded", async () => {
   const btnOptCheckoutMonthly = document.getElementById("btnOptCheckoutMonthly");
   const btnOptCheckoutLifetime = document.getElementById("btnOptCheckoutLifetime");
 
-  // Elementos Sitios Bloqueados
+  // Elementos Sitios Bloqueados (Lista Negra)
   const siteListEl = document.getElementById("siteList");
   const addSiteForm = document.getElementById("addSiteForm");
   const newSiteInput = document.getElementById("newSiteInput");
   const blockedCountEl = document.getElementById("blockedCount");
   const presetChipsEl = document.getElementById("presetChips");
+
+  // Elementos Lista Blanca (Whitelist PRO)
+  const whitelistCard = document.getElementById("whitelistCard");
+  const whitelistCount = document.getElementById("whitelistCount");
+  const addWhitelistForm = document.getElementById("addWhitelistForm");
+  const newWhitelistInput = document.getElementById("newWhitelistInput");
+  const whitelistPresets = document.getElementById("whitelistPresets");
+  const whitelistSiteList = document.getElementById("whitelistSiteList");
 
   // Elementos Rutinas
   const routineListEl = document.getElementById("routineList");
@@ -43,11 +68,24 @@ document.addEventListener("DOMContentLoaded", async () => {
   const daysSelectorEl = document.getElementById("daysSelector");
 
   // Cargar estado inicial desde storage
-  let state = await chrome.storage.local.get(["blockedSites", "routines", "isPro", "strictMode"]);
+  let state = await chrome.storage.local.get([
+    "blockedSites",
+    "whitelistSites",
+    "blockMode",
+    "blockYoutubeShorts",
+    "routines",
+    "isPro",
+    "strictMode",
+    "studyStats"
+  ]);
   let blockedSites = state.blockedSites || [];
+  let whitelistSites = state.whitelistSites || [];
+  let blockMode = state.blockMode || "blacklist";
+  let blockYoutubeShorts = !!state.blockYoutubeShorts;
   let routines = state.routines || [];
   let isPro = !!state.isPro;
   let strictMode = !!state.strictMode;
+  let studyStats = state.studyStats || {};
 
   function cleanDomain(input) {
     let domain = input.trim().toLowerCase();
@@ -79,8 +117,20 @@ document.addEventListener("DOMContentLoaded", async () => {
     }
 
     toggleStrictMode.checked = isPro && strictMode;
+    if (toggleYoutubeShorts) toggleYoutubeShorts.checked = isPro && blockYoutubeShorts;
+
+    if (blockMode === "whitelist" && isPro) {
+      if (tabModeWhitelist) tabModeWhitelist.classList.add("active");
+      if (tabModeBlacklist) tabModeBlacklist.classList.remove("active");
+    } else {
+      if (tabModeBlacklist) tabModeBlacklist.classList.add("active");
+      if (tabModeWhitelist) tabModeWhitelist.classList.remove("active");
+    }
+
     renderSites();
+    renderWhitelist();
     renderRoutines();
+    renderStatsAndRank();
   }
 
   // Desactivar PRO y volver al Plan Gratuito
@@ -88,7 +138,15 @@ document.addEventListener("DOMContentLoaded", async () => {
     btnDeactivatePro.addEventListener("click", async () => {
       isPro = false;
       strictMode = false;
-      await chrome.storage.local.set({ isPro: false, licenseKey: "", strictMode: false });
+      blockMode = "blacklist";
+      blockYoutubeShorts = false;
+      await chrome.storage.local.set({ 
+        isPro: false, 
+        licenseKey: "", 
+        strictMode: false,
+        blockMode: "blacklist",
+        blockYoutubeShorts: false
+      });
       chrome.runtime.sendMessage({ action: "deactivateLicense" }, () => {
         if (chrome.runtime.lastError) { /* ignore */ }
       });
@@ -109,6 +167,214 @@ document.addEventListener("DOMContentLoaded", async () => {
     strictMode = toggleStrictMode.checked;
     await chrome.storage.local.set({ strictMode });
   });
+
+  // Activar Bloqueador de YouTube Shorts
+  if (toggleYoutubeShorts) {
+    toggleYoutubeShorts.addEventListener("change", async () => {
+      if (!isPro) {
+        toggleYoutubeShorts.checked = false;
+        openOptModal();
+        return;
+      }
+      blockYoutubeShorts = toggleYoutubeShorts.checked;
+      await chrome.storage.local.set({ blockYoutubeShorts });
+      chrome.runtime.sendMessage({ action: "toggleYoutubeShorts" });
+    });
+  }
+
+  // Selector de Modo de Concentración (Lista Negra vs Lista Blanca)
+  if (tabModeBlacklist) {
+    tabModeBlacklist.addEventListener("click", async () => {
+      blockMode = "blacklist";
+      tabModeBlacklist.classList.add("active");
+      if (tabModeWhitelist) tabModeWhitelist.classList.remove("active");
+      await chrome.storage.local.set({ blockMode: "blacklist" });
+      chrome.runtime.sendMessage({ action: "setBlockMode", mode: "blacklist" });
+    });
+  }
+
+  if (tabModeWhitelist) {
+    tabModeWhitelist.addEventListener("click", async () => {
+      if (!isPro) {
+        openOptModal();
+        return;
+      }
+      blockMode = "whitelist";
+      tabModeWhitelist.classList.add("active");
+      if (tabModeBlacklist) tabModeBlacklist.classList.remove("active");
+      await chrome.storage.local.set({ blockMode: "whitelist" });
+      chrome.runtime.sendMessage({ action: "setBlockMode", mode: "whitelist" });
+    });
+  }
+
+  // Rango GOAT y Gráfico Semanal
+  function renderStatsAndRank() {
+    chrome.runtime.sendMessage({ action: "getStatsAndRank" }, (res) => {
+      if (!res) return;
+      const stats = res.stats || {};
+      const rank = res.rank || { level: 1, title: "Cabra Novata", icon: "🐐", badge: "PRINCIPIANTE", nextMinutes: 120, prevMinutes: 0 };
+
+      if (rankIcon) rankIcon.textContent = rank.icon;
+      if (rankBadge) rankBadge.textContent = rank.badge;
+      if (rankTitle) rankTitle.textContent = `Nivel ${rank.level} — ${rank.title}`;
+
+      const totalMins = stats.totalMinutes || 0;
+      if (rank.nextMinutes > 0) {
+        const span = rank.nextMinutes - rank.prevMinutes;
+        const currentInSpan = Math.max(0, totalMins - rank.prevMinutes);
+        const pct = Math.min(100, Math.round((currentInSpan / span) * 100));
+        if (rankXpBar) rankXpBar.style.width = `${pct}%`;
+        if (rankXpLabel) rankXpLabel.textContent = `${totalMins} / ${rank.nextMinutes} min`;
+      } else {
+        if (rankXpBar) rankXpBar.style.width = "100%";
+        if (rankXpLabel) rankXpLabel.textContent = "¡NIVEL MÁXIMO!";
+      }
+
+      if (statStreakDays) {
+        const d = stats.streakDays || 1;
+        statStreakDays.textContent = `${d} día${d > 1 ? "s" : ""}`;
+      }
+      if (statTotalHours) {
+        const h = Math.floor(totalMins / 60);
+        const m = totalMins % 60;
+        statTotalHours.textContent = `${h}h ${m}m`;
+      }
+      if (statBlockedAttempts) {
+        statBlockedAttempts.textContent = stats.blockedAttempts || 0;
+      }
+      if (statSessionsDone) {
+        statSessionsDone.textContent = stats.sessionsCompleted || 0;
+      }
+
+      renderWeeklyChart(stats.dailyHistory || {});
+    });
+  }
+
+  function renderWeeklyChart(history) {
+    if (!weeklyBars) return;
+    weeklyBars.innerHTML = "";
+
+    const now = new Date();
+    const currentDayOfWeek = now.getDay();
+    const distanceToMon = (currentDayOfWeek + 6) % 7;
+    const monday = new Date(now);
+    monday.setDate(now.getDate() - distanceToMon);
+
+    const weekDays = ["Lun", "Mar", "Mié", "Jue", "Vie", "Sáb", "Dom"];
+    const weekData = [];
+    let weekTotal = 0;
+    const todayStr = now.toISOString().split("T")[0];
+
+    for (let i = 0; i < 7; i++) {
+      const d = new Date(monday);
+      d.setDate(monday.getDate() + i);
+      const dateStr = d.toISOString().split("T")[0];
+      const mins = history[dateStr] || 0;
+      weekTotal += mins;
+      weekData.push({
+        dayName: weekDays[i],
+        dateStr,
+        mins,
+        isToday: dateStr === todayStr
+      });
+    }
+
+    if (chartWeekTotal) {
+      chartWeekTotal.textContent = `${weekTotal} min esta semana`;
+    }
+
+    const maxMins = Math.max(60, ...weekData.map((d) => d.mins));
+
+    weekData.forEach((item) => {
+      const heightPct = Math.max(8, Math.round((item.mins / maxMins) * 100));
+      const col = document.createElement("div");
+      col.className = `bar-col ${item.isToday ? "today" : ""}`;
+      col.innerHTML = `
+        <span class="bar-val-text">${item.mins > 0 ? item.mins + "m" : ""}</span>
+        <div class="bar-track">
+          <div class="bar-fill" style="height: ${heightPct}%;"></div>
+        </div>
+        <span class="bar-day-name">${item.dayName}</span>
+      `;
+      weeklyBars.appendChild(col);
+    });
+  }
+
+  // Renderizado de Lista Blanca (Whitelist PRO)
+  function renderWhitelist() {
+    if (!whitelistSiteList) return;
+    whitelistSiteList.innerHTML = "";
+    if (whitelistCount) {
+      whitelistCount.textContent = `${whitelistSites.length} herramientas`;
+    }
+
+    if (!whitelistSites.length) {
+      whitelistSiteList.innerHTML = `<li style="grid-column: 1 / -1; text-align: center; color: #888; padding: 1rem;">No tienes herramientas autorizadas. Añade Notion, Docs, Canvas, etc.</li>`;
+      return;
+    }
+
+    whitelistSites.forEach((site) => {
+      const li = document.createElement("li");
+      li.className = "site-item";
+      li.innerHTML = `
+        <span class="site-domain" title="${site}">🎓 ${site}</span>
+        <button type="button" class="btn-remove" title="Eliminar ${site}">&times;</button>
+      `;
+
+      li.querySelector(".btn-remove").addEventListener("click", async () => {
+        if (!isPro) {
+          openOptModal();
+          return;
+        }
+        whitelistSites = whitelistSites.filter((s) => s !== site);
+        await chrome.storage.local.set({ whitelistSites });
+        chrome.runtime.sendMessage({ action: "removeWhitelistSite", domain: site });
+        renderWhitelist();
+      });
+
+      whitelistSiteList.appendChild(li);
+    });
+  }
+
+  if (addWhitelistForm) {
+    addWhitelistForm.addEventListener("submit", async (e) => {
+      e.preventDefault();
+      if (!isPro) {
+        openOptModal();
+        return;
+      }
+      const domain = cleanDomain(newWhitelistInput.value);
+      if (!domain) return;
+
+      if (!whitelistSites.includes(domain)) {
+        whitelistSites.push(domain);
+        await chrome.storage.local.set({ whitelistSites });
+        chrome.runtime.sendMessage({ action: "addWhitelistSite", domain });
+        renderWhitelist();
+        newWhitelistInput.value = "";
+      } else {
+        alert("Esta herramienta ya está en tu lista blanca.");
+      }
+    });
+  }
+
+  if (whitelistPresets) {
+    whitelistPresets.addEventListener("click", async (e) => {
+      const chip = e.target.closest(".chip");
+      if (!chip) return;
+      if (!isPro) {
+        openOptModal();
+        return;
+      }
+      const site = chip.dataset.site;
+      if (site && !whitelistSites.includes(site)) {
+        whitelistSites.push(site);
+        await chrome.storage.local.set({ whitelistSites });
+        chrome.runtime.sendMessage({ action: "addWhitelistSite", domain: site });
+        renderWhitelist();
+      }
+    });
+  }
 
   // Modal Upgrade
   function openOptModal() {

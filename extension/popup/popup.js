@@ -26,8 +26,10 @@ document.addEventListener("DOMContentLoaded", async () => {
   const btnOpenUpgrade = document.getElementById("btnOpenUpgrade");
   const upgradeModal = document.getElementById("upgradeModal");
   const btnCloseUpgrade = document.getElementById("btnCloseUpgrade");
+  const statRank = document.getElementById("statRank");
   const statStreak = document.getElementById("statStreak");
   const statMinutes = document.getElementById("statMinutes");
+  const modeStatusPill = document.getElementById("modeStatusPill");
   const licenseKeyInput = document.getElementById("licenseKeyInput");
   const btnActivateKey = document.getElementById("btnActivateKey");
   const licenseFeedback = document.getElementById("licenseFeedback");
@@ -65,6 +67,28 @@ document.addEventListener("DOMContentLoaded", async () => {
       planBadge.classList.remove("is-pro");
       if (proBanner) proBanner.style.display = "flex";
     }
+    updateRankAndModeUI();
+  }
+
+  // Actualizar rango de la cabra y modo activo
+  function updateRankAndModeUI() {
+    chrome.runtime.sendMessage({ action: "getStatsAndRank" }, (res) => {
+      if (!res) return;
+      if (statRank && res.rank) {
+        statRank.textContent = `${res.rank.icon} ${res.rank.title.replace("Nivel ", "N")}`;
+        statRank.title = `${res.rank.title} (${res.stats ? res.stats.totalMinutes : 0} min acumulados)`;
+      }
+    });
+
+    chrome.storage.local.get(["blockMode", "isPro"], (res) => {
+      if (modeStatusPill) {
+        if (res.isPro && res.blockMode === "whitelist") {
+          modeStatusPill.classList.remove("hidden");
+        } else {
+          modeStatusPill.classList.add("hidden");
+        }
+      }
+    });
   }
 
   // Actualizar estadísticas de estudio
@@ -72,12 +96,13 @@ document.addEventListener("DOMContentLoaded", async () => {
     if (!stats) return;
     if (statStreak) {
       const days = stats.streakDays || 1;
-      statStreak.textContent = `🔥 ${days} día${days > 1 ? "s" : ""} racha`;
+      statStreak.textContent = `🔥 ${days} día${days > 1 ? "s" : ""}`;
     }
     if (statMinutes) {
       const mins = stats.totalMinutes || 0;
-      statMinutes.textContent = `⏱️ ${mins} min enfocados`;
+      statMinutes.textContent = `⏱️ ${mins} min`;
     }
+    updateRankAndModeUI();
   }
 
   // Detener intervalo de cuenta atrás

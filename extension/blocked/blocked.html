@@ -42,6 +42,7 @@
           <span class="brand-code">SYS·26</span>
         </div>
         <div class="nav-meta">
+          <span class="goat-rank-badge-blocked" id="blockedGoatRank">🐐 Cabra Novata</span>
           <span class="status-indicator alert">
             <span class="status-dot"></span>
             <span id="blockedTarget">ACCESO BLOQUEADO</span>
@@ -107,9 +108,25 @@
     <!-- Modal de confirmación consciente -->
     <div class="emergency-modal hidden" id="emergencyModal">
       <div class="modal-box">
-        <h3>¿Romper tu sesión de concentración?</h3>
-        <p>Entrar a esta web arruina tu estado de flujo. Si de verdad lo necesitas, espera 5 segundos:</p>
-        <div class="countdown-circle" id="emergencySeconds">5</div>
+        <h3 id="emergencyModalTitle">¿Romper tu sesión de concentración?</h3>
+        <p id="emergencyModalDesc">Entrar a esta web arruina tu estado de flujo. Si de verdad lo necesitas, supera el freno:</p>
+        
+        <!-- Freno de 10s para Free -->
+        <div id="freeFrictionBox">
+          <div class="countdown-circle" id="emergencySeconds">10</div>
+          <span class="friction-hint">Freno de 10 segundos para calmar el impulso. Respira hondo.</span>
+        </div>
+
+        <!-- Reto Mental para PRO -->
+        <div id="proChallengeBox" class="hidden">
+          <p class="challenge-title">🧠 Reto Mental Antiprocrastinación PRO:</p>
+          <div class="math-challenge-row">
+            <span class="math-question" id="mathQuestion">24 + 19 = </span>
+            <input type="number" id="mathAnswer" placeholder="?" autocomplete="off">
+          </div>
+          <span class="challenge-hint" id="mathFeedback">Resuelve el cálculo para desbloquear la salida</span>
+        </div>
+
         <div class="modal-buttons">
           <button type="button" class="btn-cancel" id="btnCancelEmergency">No, seguir estudiando</button>
           <button type="button" class="btn-confirm-danger" id="btnConfirmEmergency" disabled>Desactivar bloqueo</button>

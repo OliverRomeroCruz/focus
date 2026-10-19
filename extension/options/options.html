@@ -30,6 +30,69 @@
 
     <main class="options-main">
 
+      <!-- Tarjeta de Rango GOAT y Estadísticas Semanales -->
+      <section class="card-section goat-rank-section">
+        <div class="goat-rank-hero">
+          <div class="goat-avatar-wrap">
+            <span class="goat-avatar-icon" id="rankIcon">🐐</span>
+            <span class="goat-avatar-badge" id="rankBadge">PRINCIPIANTE</span>
+          </div>
+          <div class="goat-rank-info">
+            <div class="goat-rank-title-row">
+              <h2 id="rankTitle">Nivel 1 — Cabra Novata</h2>
+              <span class="goat-xp-label" id="rankXpLabel">0 / 120 min</span>
+            </div>
+            <div class="xp-bar-container">
+              <div class="xp-bar-fill" id="rankXpBar" style="width: 10%;"></div>
+            </div>
+            <p class="goat-rank-desc" id="rankDesc">Estudia bloques continuos para subir de rango a tu cabra y desbloquear accesorios.</p>
+          </div>
+        </div>
+
+        <!-- Grid de Métricas Principales -->
+        <div class="stats-overview-grid">
+          <div class="stat-card">
+            <span class="stat-icon">🔥</span>
+            <div class="stat-text">
+              <strong id="statStreakDays">1 día</strong>
+              <span>Racha actual</span>
+            </div>
+          </div>
+          <div class="stat-card">
+            <span class="stat-icon">⏱️</span>
+            <div class="stat-text">
+              <strong id="statTotalHours">0h 0m</strong>
+              <span>Minutos enfocados</span>
+            </div>
+          </div>
+          <div class="stat-card">
+            <span class="stat-icon">🛡️</span>
+            <div class="stat-text">
+              <strong id="statBlockedAttempts">0</strong>
+              <span>Tentaciones evitadas</span>
+            </div>
+          </div>
+          <div class="stat-card">
+            <span class="stat-icon">🎯</span>
+            <div class="stat-text">
+              <strong id="statSessionsDone">0</strong>
+              <span>Sesiones completas</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Gráfico Semanal de Horas -->
+        <div class="weekly-chart-wrapper">
+          <div class="chart-header">
+            <strong>Rendimiento Semanal (Minutos por día)</strong>
+            <span class="chart-summary" id="chartWeekTotal">0 min esta semana</span>
+          </div>
+          <div class="weekly-bars" id="weeklyBars">
+            <!-- Renderizado dinámico de barras Lun-Dom -->
+          </div>
+        </div>
+      </section>
+
       <!-- Sección PRO: Licencia, Blindaje Estricto y Estado del Plan -->
       <section class="card-section pro-card" id="proCard">
         <div class="pro-card-header">
@@ -40,7 +103,7 @@
                 <h2>FOCUS GOAT PRO</h2>
                 <span class="plan-tag" id="planTag">PLAN GRATUITO</span>
               </div>
-              <p>Desbloquea blindaje estricto sin escape, sitios ilimitados, todas tus rutinas y estadísticas avanzadas.</p>
+              <p>Desbloquea blindaje estricto, modo solo estudio, bloqueo de YouTube Shorts y sitios ilimitados.</p>
             </div>
           </div>
           <div class="pro-card-actions">
@@ -54,7 +117,7 @@
           <div class="pro-setting-item">
             <div class="setting-info">
               <strong>Modo Estricto Infranqueable 🔒</strong>
-              <p>Elimina el botón de pausa de emergencia en la pantalla de bloqueo durante sesiones de estudio. Imposible de burlar.</p>
+              <p>Elimina el botón de pausa de emergencia en la pantalla de bloqueo durante sesiones de estudio.</p>
             </div>
             <label class="switch" title="Activar/desactivar modo estricto">
               <input type="checkbox" id="toggleStrictMode">
@@ -62,8 +125,36 @@
             </label>
           </div>
 
+          <!-- Bloqueo Quirúrgico de YouTube Shorts -->
+          <div class="pro-setting-item">
+            <div class="setting-info">
+              <strong>Bloquear YouTube Shorts 🎬</strong>
+              <p>Permite ver tutoriales y clases en YouTube pero elimina por completo los Shorts y recomendaciones.</p>
+            </div>
+            <label class="switch" title="Activar/desactivar bloqueo de YouTube Shorts">
+              <input type="checkbox" id="toggleYoutubeShorts">
+              <span class="slider"></span>
+            </label>
+          </div>
+
+          <!-- Selector de Modo de Bloqueo -->
+          <div class="pro-setting-item full-width-item">
+            <div class="setting-info">
+              <strong>Estrategia de Concentración:</strong>
+              <p>Elige entre bloquear sitios distractores o blindar tu navegador en Modo Solo Estudio.</p>
+            </div>
+            <div class="mode-selector-tabs">
+              <button type="button" class="mode-tab active" id="tabModeBlacklist">
+                <span>⛔ Lista Negra (Estándar)</span>
+              </button>
+              <button type="button" class="mode-tab" id="tabModeWhitelist">
+                <span>🎓 Modo Solo Estudio (Whitelist PRO)</span>
+              </button>
+            </div>
+          </div>
+
           <!-- Activación de Licencia -->
-          <div class="pro-setting-item license-item">
+          <div class="pro-setting-item license-item full-width-item">
             <div class="setting-info">
               <strong>Activar Clave de Licencia PRO</strong>
               <p>Introduce tu clave de compra de Focus Goat PRO.</p>
@@ -114,7 +205,45 @@
         </ul>
       </section>
 
-      <!-- Sección 2: Rutinas Semanales -->
+      <!-- Sección 2: Lista Blanca (Modo Solo Estudio - Whitelist PRO) -->
+      <section class="card-section whitelist-section" id="whitelistCard">
+        <div class="section-head">
+          <div class="section-title-group">
+            <div class="title-with-badge">
+              <h2>Herramientas Permitidas (Modo Solo Estudio)</h2>
+              <span class="plan-tag is-pro">PRO</span>
+            </div>
+            <p>En Modo Solo Estudio, todo internet queda bloqueado excepto los dominios autorizados en esta lista.</p>
+          </div>
+          <span class="badge-count" id="whitelistCount">0 herramientas</span>
+        </div>
+
+        <!-- Input para añadir nueva herramienta permitida -->
+        <form class="add-site-form" id="addWhitelistForm">
+          <input type="text" id="newWhitelistInput" placeholder="Ej: notion.so, drive.google.com, campus.universidad.es..." autocomplete="off">
+          <button type="submit" class="btn-primary" id="btnAddWhitelist">Añadir herramienta</button>
+        </form>
+
+        <!-- Sugerencias de herramientas -->
+        <div class="quick-presets">
+          <span class="preset-label">Herramientas comunes de estudio:</span>
+          <div class="preset-chips" id="whitelistPresets">
+            <button type="button" class="chip" data-site="notion.so">+ Notion</button>
+            <button type="button" class="chip" data-site="docs.google.com">+ Google Docs</button>
+            <button type="button" class="chip" data-site="wikipedia.org">+ Wikipedia</button>
+            <button type="button" class="chip" data-site="canvaslms.com">+ Canvas</button>
+            <button type="button" class="chip" data-site="chatgpt.com">+ ChatGPT</button>
+            <button type="button" class="chip" data-site="github.com">+ GitHub</button>
+          </div>
+        </div>
+
+        <!-- Lista de sitios permitidos -->
+        <ul class="site-list" id="whitelistSiteList">
+          <!-- Renderizado dinámico -->
+        </ul>
+      </section>
+
+      <!-- Sección 3: Rutinas Semanales -->
       <section class="card-section">
         <div class="section-head">
           <div class="section-title-group">
@@ -183,10 +312,11 @@
         </div>
 
         <ul class="pro-perks-list">
-          <li>✨ <strong>Sitios ilimitados:</strong> Sin tope de 10 páginas.</li>
-          <li>📅 <strong>Rutinas infinitas:</strong> Programa todos tus horarios.</li>
-          <li>🛡️ <strong>Modo Estricto Infranqueable:</strong> Imposible de burlar en pleno estudio.</li>
-          <li>📊 <strong>Estadísticas y rachas:</strong> Mide tus horas reales.</li>
+          <li>🎓 <strong>Modo Solo Estudio (Whitelist):</strong> Bloquea todo internet salvo tus apuntes.</li>
+          <li>🎬 <strong>Anti-YouTube Shorts:</strong> Ve tutoriales y clases sin caer en reels.</li>
+          <li>🔒 <strong>Modo Estricto / Reto Mental:</strong> Blindaje anti-procrastinación.</li>
+          <li>👑 <strong>Evolución y Rangos de la Cabra:</strong> Desbloquea accesorios para tu mascota.</li>
+          <li>✨ <strong>Sitios y Rutinas ilimitadas:</strong> Sin límites de páginas ni horarios.</li>
         </ul>
 
         <div class="pricing-cards">

@@ -22,6 +22,7 @@ document.addEventListener("DOMContentLoaded", async () => {
   const targetUrl = urlParams.get("target") || "";
 
   // Elementos del DOM
+  const blockedGoatRank = document.getElementById("blockedGoatRank");
   const blockedTargetEl = document.getElementById("blockedTarget");
   const eyebrowTargetEl = document.getElementById("eyebrowTarget");
   const quoteTextEl = document.getElementById("quoteText");
@@ -33,10 +34,36 @@ document.addEventListener("DOMContentLoaded", async () => {
   const emergencyModal = document.getElementById("emergencyModal");
   const btnCancelEmergency = document.getElementById("btnCancelEmergency");
   const btnConfirmEmergency = document.getElementById("btnConfirmEmergency");
+  const freeFrictionBox = document.getElementById("freeFrictionBox");
   const emergencySecondsEl = document.getElementById("emergencySeconds");
+  const proChallengeBox = document.getElementById("proChallengeBox");
+  const mathQuestion = document.getElementById("mathQuestion");
+  const mathAnswer = document.getElementById("mathAnswer");
+  const mathFeedback = document.getElementById("mathFeedback");
 
-  // Mostrar el dominio que el usuario intentaba abrir
-  if (targetUrl) {
+  // Cargar Rango de la Cabra
+  chrome.runtime.sendMessage({ action: "getStatsAndRank" }, (res) => {
+    if (res && res.rank && blockedGoatRank) {
+      blockedGoatRank.textContent = `${res.rank.icon} ${res.rank.title}`;
+    }
+  });
+
+  // Mostrar el motivo y dominio del bloqueo
+  const reason = urlParams.get("reason") || "blacklist";
+  if (reason === "shorts") {
+    blockedTargetEl.textContent = "YOUTUBE SHORTS (BLOQUEO QUIRÚRGICO)";
+    eyebrowTargetEl.textContent = "POZO DE DISTRACCIÓN DETECTADO (PRO)";
+  } else if (reason === "whitelist") {
+    try {
+      const parsed = new URL(targetUrl);
+      const host = parsed.hostname.replace(/^www\./, "");
+      blockedTargetEl.textContent = `MODO SOLO ESTUDIO: ${host.toUpperCase()}`;
+      eyebrowTargetEl.textContent = "SITIO NO AUTORIZADO EN TUS APUNTES";
+    } catch (e) {
+      blockedTargetEl.textContent = "MODO SOLO ESTUDIO";
+      eyebrowTargetEl.textContent = "SITIO NO AUTORIZADO";
+    }
+  } else if (targetUrl) {
     try {
       const parsed = new URL(targetUrl);
       const host = parsed.hostname.replace(/^www\./, "");
@@ -154,8 +181,9 @@ document.addEventListener("DOMContentLoaded", async () => {
     }, 200);
   });
 
-  // Modal de pausa de emergencia (con retardo de 5 segundos)
+  // Modal de pausa de emergencia (Freno 10s para Free o Reto Mental para PRO)
   let emergencyInterval = null;
+  let currentSolution = null;
 
   btnUnlockEmergency.addEventListener("click", () => {
     if (isStrict) {
@@ -163,22 +191,62 @@ document.addEventListener("DOMContentLoaded", async () => {
       return;
     }
 
+    const isUserPro = urlParams.get("isPro") === "1";
     emergencyModal.classList.remove("hidden");
-    let count = 5;
-    emergencySecondsEl.textContent = count;
     btnConfirmEmergency.disabled = true;
 
-    if (emergencyInterval) clearInterval(emergencyInterval);
-    emergencyInterval = setInterval(() => {
-      count--;
-      if (count <= 0) {
-        clearInterval(emergencyInterval);
-        emergencySecondsEl.textContent = "✓";
-        btnConfirmEmergency.disabled = false;
-      } else {
-        emergencySecondsEl.textContent = count;
+    if (isUserPro) {
+      // MODO PRO: Reto Mental Antiprocrastinación
+      if (freeFrictionBox) freeFrictionBox.classList.add("hidden");
+      if (proChallengeBox) proChallengeBox.classList.remove("hidden");
+
+      const num1 = Math.floor(Math.random() * 25) + 14;
+      const num2 = Math.floor(Math.random() * 25) + 11;
+      currentSolution = num1 + num2;
+
+      if (mathQuestion) mathQuestion.textContent = `${num1} + ${num2} = `;
+      if (mathAnswer) {
+        mathAnswer.value = "";
+        setTimeout(() => mathAnswer.focus(), 100);
       }
-    }, 1000);
+      if (mathFeedback) {
+        mathFeedback.textContent = "Resuelve el cálculo para desbloquear la salida";
+        mathFeedback.style.color = "var(--color-ink-muted)";
+      }
+
+      mathAnswer.oninput = () => {
+        const val = parseInt(mathAnswer.value.trim(), 10);
+        if (val === currentSolution) {
+          mathFeedback.textContent = "✓ ¡Cálculo correcto! Puedes desactivar el bloqueo.";
+          mathFeedback.style.color = "#10B981";
+          btnConfirmEmergency.disabled = false;
+        } else {
+          mathFeedback.textContent = "Cálculo incorrecto. Sigue intentando...";
+          mathFeedback.style.color = "#EF4444";
+          btnConfirmEmergency.disabled = true;
+        }
+      };
+
+    } else {
+      // MODO FREE: Freno Consciente de 10 segundos
+      if (proChallengeBox) proChallengeBox.classList.add("hidden");
+      if (freeFrictionBox) freeFrictionBox.classList.remove("hidden");
+
+      let count = 10;
+      emergencySecondsEl.textContent = count;
+
+      if (emergencyInterval) clearInterval(emergencyInterval);
+      emergencyInterval = setInterval(() => {
+        count--;
+        if (count <= 0) {
+          clearInterval(emergencyInterval);
+          emergencySecondsEl.textContent = "✓";
+          btnConfirmEmergency.disabled = false;
+        } else {
+          emergencySecondsEl.textContent = count;
+        }
+      }, 1000);
+    }
   });
 
   btnCancelEmergency.addEventListener("click", () => {
