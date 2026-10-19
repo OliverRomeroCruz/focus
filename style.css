@@ -1,0 +1,430 @@
+/* ==========================================================================
+   GLASSLINE — SISTEMA DE MOVILIDAD SUSPENDIDA
+   Campaña de Arquitectura y Transporte Metropolitano
+   ========================================================================== */
+
+:root {
+  --color-ivory: #F3F0E8;
+  --color-ink: #11110F;
+  --color-coral: #FF6E54;
+  --color-ink-muted: rgba(17, 17, 15, 0.58);
+  --color-ink-faint: rgba(17, 17, 15, 0.12);
+
+  --font-body: 'Instrument Sans', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  --font-title: 'Anybody', -apple-system, BlinkMacSystemFont, sans-serif;
+  --font-serif: 'Newsreader', Georgia, serif;
+
+  --frame-margin: 12px;
+  --frame-radius: 22px;
+}
+
+/* Reset y caja */
+*, *::before, *::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+html, body {
+  width: 100%;
+  min-height: 100%;
+  background-color: var(--color-ink);
+  color: var(--color-ink);
+  font-family: var(--font-body);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* Clases solicitadas expresamente en la especificación */
+.section-copy, .section-nav {
+  font-family: var(--font-body);
+}
+
+.section-title {
+  font-family: var(--font-title);
+}
+
+.section-title em {
+  font-family: var(--font-serif);
+  font-style: italic;
+  font-weight: 400;
+  text-transform: lowercase;
+  letter-spacing: -0.01em;
+}
+
+/* Marco exterior del hero (12px margen, 22px radio) */
+.hero-frame {
+  position: relative;
+  margin: var(--frame-margin);
+  min-height: calc(100vh - (var(--frame-margin) * 2));
+  min-height: calc(100dvh - (var(--frame-margin) * 2));
+  border-radius: var(--frame-radius);
+  background-color: var(--color-ivory);
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+/* Contenedor del video y poster estático */
+.hero-media-container {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 1;
+  pointer-events: none;
+  overflow: hidden;
+}
+
+.hero-video {
+  position: absolute;
+  top: 0;
+  right: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: center;
+  display: block;
+}
+
+.hero-poster {
+  position: absolute;
+  top: 0;
+  right: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: center right;
+  display: none;
+}
+
+/* Fade marfil localizado detrás del texto sin lavar el resto del video */
+.hero-fade-scrim {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  pointer-events: none;
+  background: linear-gradient(
+    to right,
+    #F3F0E8 0%,
+    #F3F0E8 30%,
+    rgba(243, 240, 232, 0.95) 38%,
+    rgba(243, 240, 232, 0.6) 48%,
+    rgba(243, 240, 232, 0.15) 58%,
+    rgba(243, 240, 232, 0) 66%
+  );
+}
+
+/* Capa de contenido editorial */
+.hero-content {
+  position: relative;
+  z-index: 3;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  min-height: inherit;
+  flex: 1;
+  padding: 2.25rem 3rem 2rem 3rem;
+}
+
+/* 1. Navegación mínima arriba */
+.hero-nav {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  width: 100%;
+}
+
+.nav-brand {
+  display: flex;
+  align-items: baseline;
+  gap: 0.65rem;
+}
+
+.brand-name {
+  font-family: var(--font-title);
+  font-weight: 700;
+  font-size: 1.125rem;
+  letter-spacing: 0.08em;
+  color: var(--color-ink);
+}
+
+.brand-code {
+  font-family: var(--font-body);
+  font-size: 0.6875rem;
+  font-weight: 600;
+  letter-spacing: 0.12em;
+  color: var(--color-ink-muted);
+  border-left: 1px solid var(--color-ink-faint);
+  padding-left: 0.65rem;
+}
+
+.status-indicator {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  font-size: 0.6875rem;
+  font-weight: 600;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--color-ink);
+  background: rgba(17, 17, 15, 0.05);
+  border: 1px solid rgba(17, 17, 15, 0.08);
+  padding: 0.35rem 0.75rem;
+  border-radius: 999px;
+}
+
+.status-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background-color: var(--color-coral);
+  box-shadow: 0 0 0 2px rgba(255, 110, 84, 0.25);
+  display: inline-block;
+}
+
+/* 2. Cuerpo y bloque de texto negro a la izquierda */
+.hero-body {
+  display: flex;
+  align-items: center;
+  flex: 1;
+  padding: 3rem 0;
+}
+
+.hero-editorial-block {
+  max-width: 580px;
+  text-align: left;
+}
+
+.hero-eyebrow {
+  display: inline-block;
+  font-family: var(--font-body);
+  font-size: 0.75rem;
+  font-weight: 600;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--color-coral);
+  margin-bottom: 1.15rem;
+}
+
+.hero-title {
+  font-size: clamp(2.75rem, 5.2vw, 4.85rem);
+  font-weight: 700;
+  line-height: 0.96;
+  letter-spacing: -0.035em;
+  text-transform: uppercase;
+  color: var(--color-ink);
+  margin-bottom: 1.5rem;
+}
+
+.hero-title em {
+  font-family: var(--font-serif);
+  font-style: italic;
+  font-weight: 400;
+  text-transform: lowercase;
+  letter-spacing: -0.015em;
+  padding-left: 0.05em;
+}
+
+.hero-description {
+  font-size: clamp(1rem, 1.25vw, 1.125rem);
+  line-height: 1.55;
+  color: rgba(17, 17, 15, 0.8);
+  max-width: 440px;
+  margin-bottom: 2.25rem;
+}
+
+/* Botón negro "Ver el trayecto" */
+.hero-actions {
+  display: flex;
+  align-items: center;
+}
+
+.hero-button {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.75rem;
+  background-color: var(--color-ink);
+  color: var(--color-ivory);
+  font-family: var(--font-body);
+  font-size: 0.9375rem;
+  font-weight: 500;
+  letter-spacing: 0.01em;
+  text-decoration: none;
+  padding: 0.9rem 1.75rem;
+  border-radius: 999px;
+  transition: transform 0.2s cubic-bezier(0.16, 1, 0.3, 1),
+              background-color 0.2s ease,
+              box-shadow 0.2s ease;
+  cursor: pointer;
+  border: 1px solid transparent;
+}
+
+.hero-button:hover {
+  background-color: #242421;
+  transform: translateY(-1px);
+  box-shadow: 0 8px 20px -4px rgba(17, 17, 15, 0.2);
+}
+
+.hero-button:active {
+  transform: translateY(0);
+}
+
+.button-arrow {
+  transition: transform 0.2s ease;
+}
+
+.hero-button:hover .button-arrow {
+  transform: translateX(3px);
+}
+
+/* 3. Borde inferior: telemetría (ruta, velocidad, edición) */
+.hero-footer {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, auto));
+  justify-content: start;
+  gap: 3.5rem;
+  padding-top: 1.5rem;
+  border-top: 1px solid var(--color-ink-faint);
+  width: 100%;
+}
+
+.telemetry-item {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  text-align: left;
+}
+
+.telemetry-label {
+  font-size: 0.6875rem;
+  font-weight: 600;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--color-ink-muted);
+}
+
+.telemetry-value {
+  font-size: 0.8125rem;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  color: var(--color-ink);
+}
+
+/* ==========================================================================
+   ADAPTACIÓN MÓVIL
+   "En móvil conserva el texto a la izquierda, reduce el título y oculta datos secundarios"
+   ========================================================================== */
+@media (max-width: 768px) {
+  :root {
+    --frame-margin: 8px;
+    --frame-radius: 18px;
+  }
+
+  .hero-content {
+    padding: 1.5rem 1.25rem 1.25rem 1.25rem;
+  }
+
+  .hero-nav {
+    margin-bottom: 1rem;
+  }
+
+  .brand-name {
+    font-size: 1rem;
+  }
+
+  .status-indicator {
+    font-size: 0.625rem;
+    padding: 0.25rem 0.5rem;
+  }
+
+  .hero-body {
+    padding: 1.5rem 0 2rem 0;
+    align-items: flex-start;
+  }
+
+  .hero-editorial-block {
+    text-align: left;
+    max-width: 100%;
+  }
+
+  .hero-title {
+    font-size: clamp(2.1rem, 9vw, 3rem);
+    line-height: 1.02;
+    margin-bottom: 1.15rem;
+  }
+
+  .hero-description {
+    font-size: 0.9375rem;
+    line-height: 1.5;
+    margin-bottom: 1.75rem;
+  }
+
+  /* Fade en móvil adaptado verticalmente para mantener legibilidad superior */
+  .hero-fade-scrim {
+    background: linear-gradient(
+      to bottom,
+      #F3F0E8 0%,
+      #F3F0E8 48%,
+      rgba(243, 240, 232, 0.88) 64%,
+      rgba(243, 240, 232, 0.3) 80%,
+      rgba(243, 240, 232, 0) 95%
+    );
+  }
+
+  /* Ocultar datos secundarios en móvil como se indica explícitamente */
+  .telemetry-secondary {
+    display: none !important;
+  }
+
+  .hero-footer {
+    grid-template-columns: 1fr;
+    gap: 0;
+    padding-top: 1rem;
+  }
+}
+
+/* ==========================================================================
+   STAGGER TEXT ANIMATION (VengeanceUI / framer-motion recreation)
+   ========================================================================== */
+.stagger-mask {
+  display: inline-block;
+  overflow: hidden;
+  position: relative;
+  vertical-align: top;
+  line-height: inherit;
+}
+
+.stagger-item {
+  display: inline-block;
+  will-change: transform, opacity;
+  transform: translateY(115%);
+  opacity: 0;
+  transition: transform 0.6s cubic-bezier(0.22, 1, 0.36, 1),
+              opacity 0.6s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.stagger-mask.is-visible .stagger-item {
+  transform: translateY(0%);
+  opacity: 1;
+}
+
+/* ==========================================================================
+   ACCESIBILIDAD: PREFERS-REDUCED-MOTION
+   "Respeta prefers-reduced-motion"
+   ========================================================================== */
+@media (prefers-reduced-motion: reduce) {
+  .hero-video {
+    display: none;
+  }
+
+  .hero-poster {
+    display: block;
+  }
+
+  *, *::before, *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+  }
+}
