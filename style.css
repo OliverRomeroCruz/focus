@@ -159,6 +159,52 @@ html, body {
   padding-left: 0.65rem;
 }
 
+.nav-meta {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.lang-switcher {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.15rem;
+  padding: 0.25rem 0.55rem;
+  background: rgba(17, 17, 15, 0.05);
+  border: 1px solid rgba(17, 17, 15, 0.08);
+  border-radius: 999px;
+  font-size: 0.6875rem;
+  letter-spacing: 0.06em;
+}
+
+.lang-btn {
+  background: none;
+  border: none;
+  padding: 0.1rem 0.3rem;
+  cursor: pointer;
+  font-family: var(--font-body);
+  font-size: inherit;
+  font-weight: 500;
+  color: var(--color-ink-muted);
+  border-radius: 4px;
+  transition: color 0.15s ease;
+}
+
+.lang-btn:hover {
+  color: var(--color-ink);
+}
+
+.lang-btn.is-active {
+  color: var(--color-ink);
+  font-weight: 700;
+}
+
+.lang-divider {
+  color: var(--color-ink-faint);
+  font-size: 0.6rem;
+  user-select: none;
+}
+
 .status-indicator {
   display: inline-flex;
   align-items: center;
@@ -222,8 +268,10 @@ html, body {
   font-style: italic;
   font-weight: 400;
   text-transform: lowercase;
-  letter-spacing: -0.015em;
-  padding-left: 0.05em;
+  letter-spacing: -0.01em;
+  padding-left: 0.08em;
+  padding-right: 0.22em; /* Previene recorte de la inclinación cursiva y del signo ? */
+  display: inline-block;
 }
 
 .hero-description {
@@ -393,6 +441,8 @@ html, body {
   position: relative;
   vertical-align: top;
   line-height: inherit;
+  padding-right: 0.1em;
+  margin-right: -0.05em;
 }
 
 .stagger-item {
