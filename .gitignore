@@ -4,3 +4,6 @@ Thumbs.db
 *.log
 .env
 .env.local
+push.bat
+push_result.txt
+
