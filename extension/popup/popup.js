@@ -67,7 +67,6 @@ document.addEventListener("DOMContentLoaded", async () => {
   function applyProUI(isPro) {
     isUserPro = isPro;
     const exactTimeRow = document.getElementById("exactTimeRow");
-    const badgeExactPro = document.getElementById("badgeExactPro");
 
     if (isPro) {
       planBadge.textContent = "👑 PRO";
@@ -76,10 +75,6 @@ document.addEventListener("DOMContentLoaded", async () => {
       if (exactTimeRow) exactTimeRow.classList.remove("is-locked-pro");
       if (customHoursInput) customHoursInput.disabled = false;
       if (customMinsInput) customMinsInput.disabled = false;
-      if (badgeExactPro) {
-        badgeExactPro.textContent = "👑 PRO ACTIVO";
-        badgeExactPro.classList.add("active");
-      }
       closeUpgradeModal();
     } else {
       planBadge.textContent = "FREE";
@@ -88,10 +83,6 @@ document.addEventListener("DOMContentLoaded", async () => {
       if (exactTimeRow) exactTimeRow.classList.add("is-locked-pro");
       if (customHoursInput) customHoursInput.disabled = true;
       if (customMinsInput) customMinsInput.disabled = true;
-      if (badgeExactPro) {
-        badgeExactPro.textContent = "👑 SOLO PRO";
-        badgeExactPro.classList.remove("active");
-      }
     }
     updateCustomButtonText();
     updateRankAndModeUI();
@@ -521,8 +512,9 @@ document.addEventListener("DOMContentLoaded", async () => {
         popupMentalFeedback.textContent = "✅ ¡Cálculo resuelto! Desactivando...";
         popupMentalFeedback.className = "popup-mental-feedback success";
         const actionToRun = pendingInterruption;
+        pendingInterruption = null;
         setTimeout(() => {
-          closePopupMentalModal();
+          if (popupMentalModal) popupMentalModal.classList.add("hidden");
           if (actionToRun && actionToRun.callback) {
             actionToRun.callback();
           }
@@ -549,20 +541,17 @@ document.addEventListener("DOMContentLoaded", async () => {
 
   async function requestInterruption(type, callback) {
     const data = await chrome.storage.local.get(["sessionActive", "isPro", "mentalChallenge", "strictMode"]);
-    if (!data.sessionActive) {
-      callback();
-      return;
-    }
 
-    // 1. Modo Estricto PRO activo
-    if (data.isPro && data.strictMode) {
+    // 1. Modo Estricto PRO activo durante una sesión
+    if (data.isPro && data.strictMode && data.sessionActive) {
       alert("🔒 Modo Estricto PRO activo: No puedes pausar ni cancelar la sesión hasta que el tiempo llegue a 00:00.");
       if (type === "toggle_off") masterToggle.checked = true;
       return;
     }
 
-    // 2. Reto Mental PRO activo
-    if (data.isPro && data.mentalChallenge !== false) {
+    // 2. Reto Mental PRO activo (al pausar, reiniciar o desactivar el escudo en la mini pantalla)
+    const requiresChallenge = data.isPro && data.mentalChallenge !== false && (type === "toggle_off" || data.sessionActive);
+    if (requiresChallenge) {
       pendingInterruption = { type, callback };
       openPopupMentalModal();
       return;
@@ -592,21 +581,15 @@ document.addEventListener("DOMContentLoaded", async () => {
 
     if (!isChecked) {
       const data = await chrome.storage.local.get(["sessionActive", "sessionPaused"]);
-      if (data.sessionActive) {
-        requestInterruption("toggle_off", async () => {
-          await chrome.storage.local.set({ enabled: false });
-          if (!data.sessionPaused) {
-            pauseSession();
-          } else {
-            syncTimerState();
-          }
-          chrome.runtime.sendMessage({ action: "updateBadge" });
-        });
-        return;
-      }
-      await chrome.storage.local.set({ enabled: false });
-      syncTimerState();
-      chrome.runtime.sendMessage({ action: "updateBadge" });
+      requestInterruption("toggle_off", async () => {
+        await chrome.storage.local.set({ enabled: false });
+        if (data.sessionActive && !data.sessionPaused) {
+          pauseSession();
+        } else {
+          syncTimerState();
+        }
+        chrome.runtime.sendMessage({ action: "updateBadge" });
+      });
     } else {
       await chrome.storage.local.set({ enabled: true });
       const data = await chrome.storage.local.get(["sessionActive", "sessionPaused"]);
@@ -630,7 +613,7 @@ document.addEventListener("DOMContentLoaded", async () => {
   // Selector de Tiempo Exacto (Horas y Minutos) — Exclusivo PRO
   function updateCustomButtonText() {
     if (!isUserPro) {
-      btnCustomStart.innerHTML = `<span>👑 Tiempo Exacto PRO</span>`;
+      btnCustomStart.innerHTML = `<span>⏱️ TIEMPO EXACTO</span>`;
       btnCustomStart.disabled = false;
       return;
     }

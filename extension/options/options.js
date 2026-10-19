@@ -153,15 +153,35 @@ document.addEventListener("DOMContentLoaded", async () => {
       });
     }
 
-    if (toggleStrictMode) toggleStrictMode.checked = isPro && strictMode;
-    if (toggleYoutubeShorts) toggleYoutubeShorts.checked = isPro && blockYoutubeShorts;
-    if (toggleMentalChallenge) toggleMentalChallenge.checked = isPro && mentalChallenge;
-    if (toggleCleanSweep) toggleCleanSweep.checked = isPro && cleanSweep;
-    if (toggleFastRedirect) toggleFastRedirect.checked = isPro && fastRedirect;
+    setToggleUI(toggleStrictMode, statusStrictMode, isPro && strictMode);
+    setToggleUI(toggleYoutubeShorts, statusYoutubeShorts, isPro && blockYoutubeShorts);
+    setToggleUI(toggleMentalChallenge, statusMentalChallenge, isPro && mentalChallenge);
+    setToggleUI(toggleCleanSweep, statusCleanSweep, isPro && cleanSweep);
+    setToggleUI(toggleFastRedirect, statusFastRedirect, isPro && fastRedirect);
 
     renderSites();
     renderRoutines();
     renderStatsAndRank();
+  }
+
+  // Elementos de texto de estado para cada botón interruptor
+  const statusStrictMode = document.getElementById("statusStrictMode");
+  const statusYoutubeShorts = document.getElementById("statusYoutubeShorts");
+  const statusMentalChallenge = document.getElementById("statusMentalChallenge");
+  const statusCleanSweep = document.getElementById("statusCleanSweep");
+  const statusFastRedirect = document.getElementById("statusFastRedirect");
+
+  function setToggleUI(inputEl, labelEl, active) {
+    if (inputEl) inputEl.checked = !!active;
+    if (labelEl) {
+      if (active) {
+        labelEl.textContent = "ACTIVADO";
+        labelEl.classList.add("active");
+      } else {
+        labelEl.textContent = "DESACTIVADO";
+        labelEl.classList.remove("active");
+      }
+    }
   }
 
   // Desactivar PRO y volver al Plan Gratuito
@@ -186,14 +206,14 @@ document.addEventListener("DOMContentLoaded", async () => {
     });
   }
 
-  // Activar Modo Estricto
   // Interceptar clics en opciones PRO si el usuario no es PRO
   document.querySelectorAll(".pro-setting-item:not(.license-item)").forEach((item) => {
     item.addEventListener("click", (e) => {
       if (!isPro) {
         e.preventDefault();
         const sw = item.querySelector("input[type=checkbox]");
-        if (sw) sw.checked = false;
+        const statusText = item.querySelector(".toggle-status-text");
+        setToggleUI(sw, statusText, false);
         openOptModal();
       }
     });
@@ -204,11 +224,12 @@ document.addEventListener("DOMContentLoaded", async () => {
     toggleStrictMode.addEventListener("change", async (e) => {
       if (!isPro) {
         e.preventDefault();
-        toggleStrictMode.checked = false;
+        setToggleUI(toggleStrictMode, statusStrictMode, false);
         openOptModal();
         return;
       }
       strictMode = toggleStrictMode.checked;
+      setToggleUI(toggleStrictMode, statusStrictMode, strictMode);
       await chrome.storage.local.set({ strictMode });
     });
   }
@@ -218,26 +239,28 @@ document.addEventListener("DOMContentLoaded", async () => {
     toggleYoutubeShorts.addEventListener("change", async (e) => {
       if (!isPro) {
         e.preventDefault();
-        toggleYoutubeShorts.checked = false;
+        setToggleUI(toggleYoutubeShorts, statusYoutubeShorts, false);
         openOptModal();
         return;
       }
       blockYoutubeShorts = toggleYoutubeShorts.checked;
+      setToggleUI(toggleYoutubeShorts, statusYoutubeShorts, blockYoutubeShorts);
       await chrome.storage.local.set({ blockYoutubeShorts });
       chrome.runtime.sendMessage({ action: "toggleYoutubeShorts" });
     });
   }
 
-  // 3. Reto Mental en Desbloqueo y Mini Pantalla (PRO)
+  // 3. Reto Mental al Desactivar en Mini Pantalla (PRO)
   if (toggleMentalChallenge) {
     toggleMentalChallenge.addEventListener("change", async (e) => {
       if (!isPro) {
         e.preventDefault();
-        toggleMentalChallenge.checked = false;
+        setToggleUI(toggleMentalChallenge, statusMentalChallenge, false);
         openOptModal();
         return;
       }
       mentalChallenge = toggleMentalChallenge.checked;
+      setToggleUI(toggleMentalChallenge, statusMentalChallenge, mentalChallenge);
       await chrome.storage.local.set({ mentalChallenge });
     });
   }
@@ -247,11 +270,12 @@ document.addEventListener("DOMContentLoaded", async () => {
     toggleCleanSweep.addEventListener("change", async (e) => {
       if (!isPro) {
         e.preventDefault();
-        toggleCleanSweep.checked = false;
+        setToggleUI(toggleCleanSweep, statusCleanSweep, false);
         openOptModal();
         return;
       }
       cleanSweep = toggleCleanSweep.checked;
+      setToggleUI(toggleCleanSweep, statusCleanSweep, cleanSweep);
       await chrome.storage.local.set({ cleanSweep });
     });
   }
@@ -261,11 +285,12 @@ document.addEventListener("DOMContentLoaded", async () => {
     toggleFastRedirect.addEventListener("change", async (e) => {
       if (!isPro) {
         e.preventDefault();
-        toggleFastRedirect.checked = false;
+        setToggleUI(toggleFastRedirect, statusFastRedirect, false);
         openOptModal();
         return;
       }
       fastRedirect = toggleFastRedirect.checked;
+      setToggleUI(toggleFastRedirect, statusFastRedirect, fastRedirect);
       await chrome.storage.local.set({ fastRedirect });
     });
   }
