@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <title>Focus Goat</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Anybody:ital,wght@0,700;1,400&family=Instrument+Sans:wght@400;500;600;700&family=Newsreader:ital,wght@1,400&display=swap">
+  <link rel="stylesheet" href="popup.css">
+</head>
+<body>
+
+  <div class="popup-card">
+
+    <!-- Header -->
+    <header class="popup-header">
+      <div class="brand">
+        <span class="brand-logo">🐐</span>
+        <div class="brand-text">
+          <span class="brand-name">FOCUS GOAT</span>
+          <span class="brand-tag">BLINDAJE DE ESTUDIO</span>
+        </div>
+      </div>
+      <!-- Toggle Maestro -->
+      <label class="switch-toggle" title="Activar/Desactivar extensión">
+        <input type="checkbox" id="masterToggle" checked>
+        <span class="slider"></span>
+      </label>
+    </header>
+
+    <!-- Estado Actual -->
+    <section class="status-panel" id="statusPanel">
+      <div class="status-top">
+        <span class="status-indicator-dot" id="statusDot"></span>
+        <span class="status-title" id="statusTitle">ENFOQUE INACTIVO</span>
+      </div>
+      <div class="countdown-large" id="popupCountdown">00:00:00</div>
+      <div class="status-desc" id="statusDesc">Inicia un bloque de estudio para blindar tu mente.</div>
+      <button type="button" class="btn-stop-session hidden" id="btnStopSession">Detener sesión actual</button>
+    </section>
+
+    <!-- Botones rápidos de sesión -->
+    <section class="quick-timers">
+      <span class="section-title">INICIAR SESIÓN RÁPIDA</span>
+      <div class="timer-grid">
+        <button type="button" class="btn-timer" data-mins="15">15 min</button>
+        <button type="button" class="btn-timer highlight" data-mins="25">25 min <em>(Pomodoro)</em></button>
+        <button type="button" class="btn-timer" data-mins="45">45 min</button>
+        <button type="button" class="btn-timer" data-mins="60">60 min</button>
+      </div>
+
+      <div class="custom-timer-row">
+        <input type="number" id="customMins" placeholder="Min" min="1" max="360" value="30">
+        <button type="button" class="btn-custom-start" id="btnCustomStart">Empezar</button>
+      </div>
+    </section>
+
+    <!-- Bloquear pestaña actual -->
+    <section class="quick-action">
+      <button type="button" class="btn-block-current" id="btnBlockCurrent">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="12" cy="12" r="10"/>
+          <line x1="4.93" y1="4.93" x2="19.07" y2="19.07"/>
+        </svg>
+        <span id="blockCurrentText">Bloquear este sitio</span>
+      </button>
+    </section>
+
+    <!-- Footer con enlace a opciones -->
+    <footer class="popup-footer">
+      <button type="button" class="btn-options-link" id="btnOpenOptions">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="12" cy="12" r="3"/>
+          <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/>
+        </svg>
+        <span>Configurar Rutinas y Sitios</span>
+      </button>
+    </footer>
+
+  </div>
+
+  <script src="popup.js"></script>
+</body>
+</html>

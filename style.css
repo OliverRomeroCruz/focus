@@ -460,6 +460,175 @@ html, body {
 }
 
 /* ==========================================================================
+   MODAL GUÍA DE INSTALACIÓN RÁPIDA
+   ========================================================================== */
+.install-modal {
+  position: absolute;
+  inset: 0;
+  z-index: 50;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1.5rem;
+  transition: opacity 0.25s cubic-bezier(0.16, 1, 0.3, 1),
+              visibility 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.install-modal.hidden {
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+}
+
+.install-modal-backdrop {
+  position: absolute;
+  inset: 0;
+  background: rgba(17, 17, 15, 0.65);
+  backdrop-filter: blur(8px);
+}
+
+.install-modal-card {
+  position: relative;
+  z-index: 2;
+  background: var(--color-ivory);
+  border-radius: 20px;
+  padding: 2.25rem 2.5rem;
+  max-width: 540px;
+  width: 100%;
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.35);
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+  border: 1px solid rgba(255, 255, 255, 0.4);
+}
+
+.modal-close {
+  position: absolute;
+  top: 1rem;
+  right: 1.25rem;
+  background: none;
+  border: none;
+  font-size: 1.75rem;
+  line-height: 1;
+  color: var(--color-ink-muted);
+  cursor: pointer;
+  padding: 0.2rem;
+  border-radius: 4px;
+}
+
+.modal-close:hover {
+  color: var(--color-ink);
+}
+
+.modal-badge {
+  display: inline-block;
+  align-self: flex-start;
+  font-size: 0.65rem;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  color: var(--color-coral);
+  background: rgba(255, 110, 84, 0.1);
+  padding: 0.25rem 0.65rem;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 110, 84, 0.25);
+}
+
+.modal-title {
+  font-family: var(--font-title);
+  font-size: 1.45rem;
+  font-weight: 700;
+  line-height: 1.15;
+  color: var(--color-ink);
+}
+
+.install-steps {
+  display: flex;
+  flex-direction: column;
+  gap: 0.9rem;
+}
+
+.step-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.85rem;
+}
+
+.step-number {
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  background: var(--color-ink);
+  color: var(--color-ivory);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.75rem;
+  font-weight: 700;
+  flex-shrink: 0;
+  margin-top: 0.15rem;
+}
+
+.step-content strong {
+  display: block;
+  font-size: 0.9rem;
+  color: var(--color-ink);
+  margin-bottom: 0.15rem;
+}
+
+.step-content p {
+  font-size: 0.8125rem;
+  color: var(--color-ink-muted);
+  line-height: 1.4;
+}
+
+.code-pill {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font-size: 0.75rem;
+  background: rgba(17, 17, 15, 0.07);
+  padding: 0.15rem 0.45rem;
+  border-radius: 4px;
+  color: var(--color-ink);
+  user-select: all;
+}
+
+.modal-footer {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding-top: 0.75rem;
+  border-top: 1px solid var(--color-ink-faint);
+}
+
+.modal-action-btn {
+  padding: 0.7rem 1.4rem;
+  background: var(--color-ink);
+  color: var(--color-ivory);
+  border: none;
+  border-radius: 999px;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.modal-action-btn:hover {
+  background: #000;
+  transform: translateY(-1px);
+}
+
+.copy-feedback {
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: #16a34a;
+  opacity: 0;
+  transition: opacity 0.2s ease;
+}
+
+.copy-feedback.is-visible {
+  opacity: 1;
+}
+
+/* ==========================================================================
    ACCESIBILIDAD: PREFERS-REDUCED-MOTION
    "Respeta prefers-reduced-motion"
    ========================================================================== */

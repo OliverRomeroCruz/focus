@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Focus Goat — Panel de Control y Rutinas</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Anybody:ital,wght@0,700;1,400&family=Instrument+Sans:wght@400;500;600;700&family=Newsreader:ital,wght@1,400&display=swap">
+  <link rel="stylesheet" href="options.css">
+</head>
+<body>
+
+  <div class="options-layout">
+
+    <!-- Sidebar / Cabecera -->
+    <header class="options-header">
+      <div class="brand">
+        <span class="brand-logo">🐐</span>
+        <div class="brand-info">
+          <h1 class="brand-name">FOCUS GOAT</h1>
+          <span class="brand-tag">PANEL DE CONTROL & RUTINAS DE ESTUDIO</span>
+        </div>
+      </div>
+      <div class="header-status" id="headerStatus">
+        <span class="dot"></span>
+        <span>Guardado automáticamente</span>
+      </div>
+    </header>
+
+    <main class="options-main">
+
+      <!-- Sección 1: Sitios Bloqueados -->
+      <section class="card-section">
+        <div class="section-head">
+          <div class="section-title-group">
+            <h2>Sitios Bloqueados</h2>
+            <p>Introduce los dominios de las páginas que quieres bloquear durante tus sesiones y rutinas.</p>
+          </div>
+          <span class="badge-count" id="blockedCount">0 sitios</span>
+        </div>
+
+        <!-- Input para añadir nuevo sitio -->
+        <form class="add-site-form" id="addSiteForm">
+          <input type="text" id="newSiteInput" placeholder="Ej: youtube.com, instagram.com, twitter.com..." required autocomplete="off">
+          <button type="submit" class="btn-primary">Añadir sitio</button>
+        </form>
+
+        <!-- Sugerencias rápidas -->
+        <div class="quick-presets">
+          <span class="preset-label">Añadir sugerencia rápida:</span>
+          <div class="preset-chips" id="presetChips">
+            <button type="button" class="chip" data-site="youtube.com">+ YouTube</button>
+            <button type="button" class="chip" data-site="instagram.com">+ Instagram</button>
+            <button type="button" class="chip" data-site="tiktok.com">+ TikTok</button>
+            <button type="button" class="chip" data-site="x.com">+ X (Twitter)</button>
+            <button type="button" class="chip" data-site="reddit.com">+ Reddit</button>
+            <button type="button" class="chip" data-site="twitch.tv">+ Twitch</button>
+            <button type="button" class="chip" data-site="netflix.com">+ Netflix</button>
+            <button type="button" class="chip" data-site="discord.com">+ Discord</button>
+          </div>
+        </div>
+
+        <!-- Lista de sitios bloqueados -->
+        <ul class="site-list" id="siteList">
+          <!-- Renderizado dinámico -->
+        </ul>
+      </section>
+
+
+      <!-- Sección 2: Rutinas Semanales -->
+      <section class="card-section">
+        <div class="section-head">
+          <div class="section-title-group">
+            <h2>Rutinas Semanales de Estudio</h2>
+            <p>Programa horarios automáticos por día de la semana. Durante estas horas, el bloqueo se activará solo.</p>
+          </div>
+          <button type="button" class="btn-secondary" id="btnToggleNewRoutine">+ Nueva Rutina</button>
+        </div>
+
+        <!-- Formulario para crear rutina (ocultable) -->
+        <form class="routine-form hidden" id="routineForm">
+          <div class="form-row">
+            <label for="routineName">Nombre de la rutina</label>
+            <input type="text" id="routineName" placeholder="Ej: Estudio Tardes, Biblioteca, Oposiciones..." required>
+          </div>
+
+          <div class="form-row">
+            <label>Días de la semana</label>
+            <div class="days-selector" id="daysSelector">
+              <label class="day-checkbox"><input type="checkbox" value="1" checked><span>L</span></label>
+              <label class="day-checkbox"><input type="checkbox" value="2" checked><span>M</span></label>
+              <label class="day-checkbox"><input type="checkbox" value="3" checked><span>X</span></label>
+              <label class="day-checkbox"><input type="checkbox" value="4" checked><span>J</span></label>
+              <label class="day-checkbox"><input type="checkbox" value="5" checked><span>V</span></label>
+              <label class="day-checkbox"><input type="checkbox" value="6"><span>S</span></label>
+              <label class="day-checkbox"><input type="checkbox" value="0"><span>D</span></label>
+            </div>
+          </div>
+
+          <div class="form-row times-grid">
+            <div>
+              <label for="routineStart">Hora inicio</label>
+              <input type="time" id="routineStart" value="16:00" required>
+            </div>
+            <div>
+              <label for="routineEnd">Hora fin</label>
+              <input type="time" id="routineEnd" value="20:30" required>
+            </div>
+          </div>
+
+          <div class="form-actions">
+            <button type="button" class="btn-cancel" id="btnCancelRoutine">Cancelar</button>
+            <button type="submit" class="btn-primary">Guardar Rutina</button>
+          </div>
+        </form>
+
+        <!-- Lista de rutinas configuradas -->
+        <div class="routine-list" id="routineList">
+          <!-- Renderizado dinámico -->
+        </div>
+      </section>
+
+
+      <!-- Sección 3: Mensajes Motivadores -->
+      <section class="card-section">
+        <div class="section-head">
+          <div class="section-title-group">
+            <h2>Mensajes Motivadores</h2>
+            <p>Las frases que verás cada vez que intentes acceder a una web bloqueada.</p>
+          </div>
+          <button type="button" class="btn-text" id="btnResetQuotes">Restaurar frases originales</button>
+        </div>
+
+        <form class="add-quote-form" id="addQuoteForm">
+          <input type="text" id="newQuoteInput" placeholder="Escribe tu propia frase motivadora..." required>
+          <button type="submit" class="btn-primary">Añadir Frase</button>
+        </form>
+
+        <ul class="quote-list" id="quoteList">
+          <!-- Renderizado dinámico -->
+        </ul>
+      </section>
+
+    </main>
+  </div>
+
+  <script src="options.js"></script>
+</body>
+</html>

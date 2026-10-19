@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>FOCUS GOAT — ARE you sure?</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Anybody:ital,wght@0,700;1,400&family=Instrument+Sans:wght@400;500;600;700&family=Newsreader:ital,wght@1,400&display=swap">
+  <link rel="stylesheet" href="blocked.css">
+</head>
+<body>
+
+  <div class="block-container">
+    <!-- Marco principal -->
+    <main class="block-card">
+
+      <!-- Header de marca -->
+      <header class="block-header">
+        <div class="brand">
+          <span class="brand-logo">🐐</span>
+          <span class="brand-name">FOCUS GOAT</span>
+          <span class="brand-sub">SYS·ESTUDIO</span>
+        </div>
+        <div class="intercept-badge" id="interceptBadge">
+          <span class="pulse-dot"></span>
+          <span id="blockedTarget">SITIO BLOQUEADO</span>
+        </div>
+      </header>
+
+      <!-- Título de impacto -->
+      <section class="headline-section">
+        <h1 class="headline-title">
+          FOCUS GOAT /<br>
+          ARE <em>you sure?</em>
+        </h1>
+        <p class="headline-sub" id="sessionContext">
+          Sesión de estudio en curso. Tu concentración está blindada.
+        </p>
+      </section>
+
+      <!-- Bloque de Frase Motivadora -->
+      <section class="quote-card">
+        <div class="quote-icon">“</div>
+        <blockquote class="quote-text" id="quoteText">
+          Cargando dosis de motivación...
+        </blockquote>
+        <div class="quote-footer">
+          <span class="quote-author">Mentalidad GOAT</span>
+          <button type="button" class="btn-refresh-quote" id="btnRefreshQuote" title="Siguiente frase motivadora">
+            <span>Otra frase</span>
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67"/>
+            </svg>
+          </button>
+        </div>
+      </section>
+
+      <!-- Temporizador en vivo -->
+      <section class="timer-section">
+        <div class="timer-label">TIEMPO RESTANTE DE BLOQUEO</div>
+        <div class="timer-display" id="timerDisplay">--:--:--</div>
+        <div class="timer-mode" id="timerMode">Cargando rutina...</div>
+      </section>
+
+      <!-- Acciones de salida -->
+      <footer class="block-actions">
+        <button type="button" class="btn-primary" id="btnStudy">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <polyline points="9 14 4 9 9 4"/>
+            <path d="M20 20v-7a4 4 0 0 0-4-4H4"/>
+          </svg>
+          <span>Cerrar y volver a estudiar</span>
+        </button>
+
+        <button type="button" class="btn-secondary" id="btnUnlockEmergency">
+          <span>Pausa de emergencia</span>
+        </button>
+      </footer>
+
+      <!-- Modal de confirmación consciente -->
+      <div class="emergency-modal hidden" id="emergencyModal">
+        <div class="modal-box">
+          <h3>¿Seguro que quieres romper el foco?</h3>
+          <p>Tomar una pausa impulsiva arruina el estado de flujo. Si de verdad lo necesitas, espera 5 segundos:</p>
+          <div class="countdown-circle" id="emergencySeconds">5</div>
+          <div class="modal-buttons">
+            <button type="button" class="btn-cancel" id="btnCancelEmergency">No, seguir estudiando</button>
+            <button type="button" class="btn-confirm-danger" id="btnConfirmEmergency" disabled>Desactivar bloqueo</button>
+          </div>
+        </div>
+      </div>
+
+    </main>
+  </div>
+
+  <script src="blocked.js"></script>
+</body>
+</html>

@@ -93,7 +93,57 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // 5. Selector de idioma (ES / EN)
   initLanguageSwitcher();
+
+  // 6. Modal guía de instalación rápida
+  initInstallModal();
 });
+
+/**
+ * Control del modal de instalación de la extensión
+ */
+function initInstallModal() {
+  const btnOpen = document.getElementById('btnOpenInstallModal');
+  const modal = document.getElementById('installModal');
+  const btnClose = document.getElementById('btnCloseModal');
+  const backdrop = document.getElementById('modalBackdrop');
+  const btnCopy = document.getElementById('btnCopyPath');
+  const feedback = document.getElementById('copyFeedback');
+
+  if (!btnOpen || !modal) return;
+
+  function openModal() {
+    modal.classList.remove('hidden');
+    modal.setAttribute('aria-hidden', 'false');
+  }
+
+  function closeModal() {
+    modal.classList.add('hidden');
+    modal.setAttribute('aria-hidden', 'true');
+  }
+
+  btnOpen.addEventListener('click', openModal);
+  if (btnClose) btnClose.addEventListener('click', closeModal);
+  if (backdrop) backdrop.addEventListener('click', closeModal);
+
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape' && !modal.classList.contains('hidden')) {
+      closeModal();
+    }
+  });
+
+  if (btnCopy && feedback) {
+    btnCopy.addEventListener('click', () => {
+      const extPath = 'C:\\Users\\Oliver\\Documents\\antigravity\\3. Desarrollo\\focus\\extension';
+      navigator.clipboard.writeText(extPath).then(() => {
+        feedback.classList.add('is-visible');
+        setTimeout(() => feedback.classList.remove('is-visible'), 2500);
+      }).catch(() => {
+        // Fallback
+        prompt('Copia la ruta de la extensión:', extPath);
+      });
+    });
+  }
+}
 
 /**
  * Diccionario multilingüe para Focus Goat
