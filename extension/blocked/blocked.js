@@ -40,6 +40,8 @@ document.addEventListener("DOMContentLoaded", async () => {
   const mathQuestion = document.getElementById("mathQuestion");
   const mathAnswer = document.getElementById("mathAnswer");
   const mathFeedback = document.getElementById("mathFeedback");
+  const btnCheckUnblock = document.getElementById("btnCheckUnblock");
+  const whitelistAlertBox = document.getElementById("whitelistAlertBox");
 
   // Cargar Rango de la Cabra
   chrome.runtime.sendMessage({ action: "getStatsAndRank" }, (res) => {
@@ -54,6 +56,7 @@ document.addEventListener("DOMContentLoaded", async () => {
     blockedTargetEl.textContent = "YOUTUBE SHORTS (BLOQUEO QUIRÚRGICO)";
     eyebrowTargetEl.textContent = "POZO DE DISTRACCIÓN DETECTADO (PRO)";
   } else if (reason === "whitelist") {
+    if (whitelistAlertBox) whitelistAlertBox.classList.remove("hidden");
     try {
       const parsed = new URL(targetUrl);
       const host = parsed.hostname.replace(/^www\./, "");
@@ -162,27 +165,77 @@ document.addEventListener("DOMContentLoaded", async () => {
     setStrictModeActive();
   }
 
-  syncTimer();
+  // Comprueba si esta URL específica ya no está bloqueada (por ejemplo, si se eliminó de la lista)
+  function checkUrlStillBlocked() {
+    if (!targetUrl) return;
+    chrome.runtime.sendMessage({ action: "checkUrlStatus", url: targetUrl }, (res) => {
+      if (chrome.runtime.lastError) return;
+      if (res && res.isBlocked === false) {
+        timerDisplayEl.textContent = "00:00:00";
+        timerModeEl.textContent = "¡Sitio desbloqueado! Redirigiendo...";
+        if (timerInterval) clearInterval(timerInterval);
+        setTimeout(() => {
+          window.location.replace(targetUrl);
+        }, 200);
+      }
+    });
+  }
 
-  // Desbloqueo reactivo instantáneo cuando finaliza la sesión en storage
+  // Botón directo para reintentar / comprobar si el usuario lo eliminó de la lista
+  if (btnCheckUnblock) {
+    btnCheckUnblock.addEventListener("click", () => {
+      btnCheckUnblock.textContent = "Comprobando...";
+      chrome.runtime.sendMessage({ action: "checkUrlStatus", url: targetUrl }, (res) => {
+        if (chrome.runtime.lastError || !res) {
+          window.location.replace(targetUrl);
+          return;
+        }
+        if (!res.isBlocked) {
+          timerDisplayEl.textContent = "00:00:00";
+          timerModeEl.textContent = "¡Sitio desbloqueado! Entrando...";
+          window.location.replace(targetUrl);
+        } else if (res.reason === "whitelist") {
+          alert("Este sitio sigue bloqueado porque el 'Modo Solo Estudio (Whitelist PRO)' está activo. Añádelo a tu lista blanca en Opciones o cambia a Lista Negra estándar.");
+          btnCheckUnblock.innerHTML = "<span>¿Has eliminado este sitio de la lista? Haz clic para entrar ahora ➜</span>";
+        } else {
+          alert("Este sitio todavía figura en tu lista de sitios bloqueados o tu sesión de estudio continúa activa.");
+          btnCheckUnblock.innerHTML = "<span>¿Has eliminado este sitio de la lista? Haz clic para entrar ahora ➜</span>";
+        }
+      });
+    });
+  }
+
+  syncTimer();
+  checkUrlStillBlocked();
+
+  // Desbloqueo reactivo instantáneo cuando finaliza la sesión o se modifica la lista en storage
   chrome.storage.onChanged.addListener((changes, area) => {
     if (area === "local") {
       if (changes.sessionActive && changes.sessionActive.newValue === false) {
         timerDisplayEl.textContent = "00:00:00";
         timerModeEl.textContent = "Sesión finalizada. Desbloqueado.";
         if (targetUrl) {
-          window.location.href = targetUrl;
+          window.location.replace(targetUrl);
         }
+      }
+      if (changes.blockedSites || changes.blockMode || changes.whitelistSites || changes.enabled) {
+        checkUrlStillBlocked();
       }
     }
   });
 
+  let tickCount = 0;
   timerInterval = setInterval(() => {
+    tickCount++;
     if (remainingMs > 1000) {
       remainingMs -= 1000;
       updateDisplay();
     } else {
       syncTimer();
+    }
+    // Cada 3 segundos verificar si el sitio fue desbloqueado
+    if (tickCount % 3 === 0) {
+      checkUrlStillBlocked();
     }
   }, 1000);
 

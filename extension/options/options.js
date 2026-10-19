@@ -30,6 +30,7 @@ document.addEventListener("DOMContentLoaded", async () => {
   const toggleStrictMode = document.getElementById("toggleStrictMode");
   const toggleYoutubeShorts = document.getElementById("toggleYoutubeShorts");
   const toggleSoundAlert = document.getElementById("toggleSoundAlert");
+  const btnTestSound = document.getElementById("btnTestSound");
   const toggleNotifications = document.getElementById("toggleNotifications");
   const toggleMentalChallenge = document.getElementById("toggleMentalChallenge");
   const toggleFastRedirect = document.getElementById("toggleFastRedirect");
@@ -103,11 +104,23 @@ document.addEventListener("DOMContentLoaded", async () => {
   let studyStats = state.studyStats || {};
 
   function cleanDomain(input) {
+    if (!input) return "";
     let domain = input.trim().toLowerCase();
     domain = domain.replace(/^https?:\/\//, "");
     domain = domain.replace(/^www\./, "");
     domain = domain.replace(/\/.*$/, "");
     return domain;
+  }
+
+  function isSameDomainOrVariant(d1, d2) {
+    const c1 = cleanDomain(d1);
+    const c2 = cleanDomain(d2);
+    if (!c1 || !c2) return false;
+    if (c1 === c2) return true;
+    if ((c1.includes("youtube.com") || c1.includes("youtu.be")) && (c2.includes("youtube.com") || c2.includes("youtu.be"))) {
+      return true;
+    }
+    return false;
   }
 
   // ==========================================
@@ -217,7 +230,57 @@ document.addEventListener("DOMContentLoaded", async () => {
     });
   }
 
-  // Activar/desactivar Campana Sonora
+  // Reproducir campana armónica de prueba
+  function playOptionsChime() {
+    try {
+      const AudioCtxClass = window.AudioContext || window.webkitAudioContext;
+      if (!AudioCtxClass) return;
+      const ctx = new AudioCtxClass();
+      if (ctx.state === "suspended") ctx.resume();
+
+      const notes = [
+        { freq: 587.33, start: 0, dur: 0.9 },
+        { freq: 880.00, start: 0.16, dur: 1.1 },
+        { freq: 1174.66, start: 0.36, dur: 1.6 }
+      ];
+
+      notes.forEach((note) => {
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+        osc.type = "sine";
+        osc.frequency.setValueAtTime(note.freq, ctx.currentTime + note.start);
+        gain.gain.setValueAtTime(0.001, ctx.currentTime + note.start);
+        gain.gain.exponentialRampToValueAtTime(0.35, ctx.currentTime + note.start + 0.03);
+        gain.gain.exponentialRampToValueAtTime(0.0001, ctx.currentTime + note.start + note.dur);
+        osc.connect(gain);
+        gain.connect(ctx.destination);
+        osc.start(ctx.currentTime + note.start);
+        osc.stop(ctx.currentTime + note.start + note.dur);
+      });
+    } catch (e) {
+      console.warn("Error playing chime in options:", e);
+    }
+  }
+
+  // Botón de prueba de sonido de campana
+  if (btnTestSound) {
+    btnTestSound.addEventListener("click", () => {
+      playOptionsChime();
+      chrome.runtime.sendMessage({ action: "testFinishSound" }, () => {
+        if (chrome.runtime.lastError) {}
+      });
+      btnTestSound.textContent = "🔔 ¡Sonando!";
+      btnTestSound.style.borderColor = "var(--color-coral)";
+      btnTestSound.style.color = "var(--color-coral)";
+      setTimeout(() => {
+        btnTestSound.textContent = "🔊 Probar sonido";
+        btnTestSound.style.borderColor = "";
+        btnTestSound.style.color = "";
+      }, 1800);
+    });
+  }
+
+  // Activar/desactivar Campana Sonora (Disponible para todos: Free & PRO)
   if (toggleSoundAlert) {
     toggleSoundAlert.addEventListener("change", async () => {
       soundAlert = toggleSoundAlert.checked;
@@ -566,9 +629,14 @@ document.addEventListener("DOMContentLoaded", async () => {
       `;
 
       li.querySelector(".btn-remove").addEventListener("click", async () => {
-        blockedSites = blockedSites.filter((s) => s !== site);
+        const targetClean = cleanDomain(site);
+        blockedSites = blockedSites.filter((s) => !isSameDomainOrVariant(s, site) && cleanDomain(s) !== targetClean);
         await chrome.storage.local.set({ blockedSites });
         renderSites();
+        // Notificar de inmediato al background para desbloquear pestañas abiertas
+        chrome.runtime.sendMessage({ action: "siteRemoved", domain: targetClean }, () => {
+          if (chrome.runtime.lastError) {}
+        });
       });
 
       siteListEl.appendChild(li);
@@ -590,6 +658,9 @@ document.addEventListener("DOMContentLoaded", async () => {
       await chrome.storage.local.set({ blockedSites });
       renderSites();
       newSiteInput.value = "";
+      chrome.runtime.sendMessage({ action: "sitesUpdated" }, () => {
+        if (chrome.runtime.lastError) {}
+      });
     } else {
       alert("Este sitio ya está en tu lista de bloqueo.");
     }
@@ -610,6 +681,9 @@ document.addEventListener("DOMContentLoaded", async () => {
       blockedSites.push(site);
       await chrome.storage.local.set({ blockedSites });
       renderSites();
+      chrome.runtime.sendMessage({ action: "sitesUpdated" }, () => {
+        if (chrome.runtime.lastError) {}
+      });
     }
   });
 

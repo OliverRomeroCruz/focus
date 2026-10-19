@@ -470,6 +470,16 @@ async function handleSessionCompleted() {
   }
 }
 
+// Normaliza y extrae el hostname limpio de cualquier URL o dominio
+function cleanDomainHost(input) {
+  if (!input) return "";
+  let domain = input.trim().toLowerCase();
+  domain = domain.replace(/^https?:\/\//, "");
+  domain = domain.replace(/^www\./, "");
+  domain = domain.replace(/\/.*$/, "");
+  return domain;
+}
+
 // Comprueba si una URL coincide con la lista de bloqueo (Lista Negra)
 function isBlockedUrl(urlStr, blockedSites) {
   if (!urlStr || !blockedSites || !blockedSites.length) return false;
@@ -479,10 +489,10 @@ function isBlockedUrl(urlStr, blockedSites) {
     if (url.protocol !== "http:" && url.protocol !== "https:") return false;
     if (url.hostname === chrome.runtime.id) return false;
 
-    const host = url.hostname.toLowerCase();
+    const host = cleanDomainHost(url.hostname);
 
     return blockedSites.some((site) => {
-      const cleanSite = site.trim().toLowerCase().replace(/^https?:\/\//, "").replace(/\/.*$/, "");
+      const cleanSite = cleanDomainHost(site);
       if (!cleanSite) return false;
       return host === cleanSite || host.endsWith("." + cleanSite);
     });
@@ -499,15 +509,80 @@ function isWhitelistedUrl(urlStr, whitelistSites) {
     if (url.protocol !== "http:" && url.protocol !== "https:") return true;
     if (url.hostname === chrome.runtime.id) return true;
 
-    const host = url.hostname.toLowerCase();
+    const host = cleanDomainHost(url.hostname);
     return (whitelistSites || DEFAULT_WHITELIST_SITES).some((site) => {
-      const cleanSite = site.trim().toLowerCase().replace(/^https?:\/\//, "").replace(/\/.*$/, "");
+      const cleanSite = cleanDomainHost(site);
       if (!cleanSite) return false;
       return host === cleanSite || host.endsWith("." + cleanSite);
     });
   } catch (e) {
     return false;
   }
+}
+
+// Comprueba de forma global si una URL debe estar bloqueada en este momento
+async function checkUrlBlocked(urlStr) {
+  if (!urlStr) return { isBlocked: false, reason: "none" };
+
+  const status = await getFocusStatus();
+  if (!status.isActive) {
+    return { isBlocked: false, reason: "inactive" };
+  }
+
+  const data = await chrome.storage.local.get([
+    "blockedSites",
+    "whitelistSites",
+    "blockMode",
+    "blockYoutubeShorts",
+    "isPro"
+  ]);
+
+  // 1. Bloqueo quirúrgico de YouTube Shorts (Focus Goat PRO)
+  if (data.isPro && data.blockYoutubeShorts) {
+    try {
+      const u = new URL(urlStr);
+      if (u.hostname.includes("youtube.com") && u.pathname.startsWith("/shorts")) {
+        return { isBlocked: true, reason: "shorts" };
+      }
+    } catch (e) {}
+  }
+
+  // 2. Comprobar modo de bloqueo
+  const isWhitelistMode = data.isPro && data.blockMode === "whitelist";
+  if (isWhitelistMode) {
+    const isAllowed = isWhitelistedUrl(urlStr, data.whitelistSites);
+    if (!isAllowed) {
+      return { isBlocked: true, reason: "whitelist" };
+    }
+  } else {
+    if (isBlockedUrl(urlStr, data.blockedSites || [])) {
+      return { isBlocked: true, reason: "blacklist" };
+    }
+  }
+
+  return { isBlocked: false, reason: "allowed" };
+}
+
+// Desbloquear automáticamente todas las pestañas de blocked.html cuya web objetivo ya NO esté bloqueada
+async function unblockTabsNoLongerBlocked() {
+  try {
+    const blockPagePrefix = chrome.runtime.getURL("blocked/blocked.html");
+    const tabs = await chrome.tabs.query({});
+    for (const tab of tabs) {
+      if (tab.url && tab.url.startsWith(blockPagePrefix)) {
+        try {
+          const parsed = new URL(tab.url);
+          const target = parsed.searchParams.get("target");
+          if (target && (target.startsWith("http://") || target.startsWith("https://"))) {
+            const check = await checkUrlBlocked(target);
+            if (!check.isBlocked) {
+              chrome.tabs.update(tab.id, { url: target });
+            }
+          }
+        } catch (e) {}
+      }
+    }
+  } catch (e) {}
 }
 
 // Interceptar pestañas y redirigir
@@ -519,10 +594,6 @@ chrome.tabs.onUpdated.addListener(async (tabId, changeInfo, tab) => {
   if (urlToInspect.startsWith(blockPagePrefix)) return;
 
   const data = await chrome.storage.local.get([
-    "blockedSites",
-    "whitelistSites",
-    "blockMode",
-    "blockYoutubeShorts",
     "strictMode",
     "isPro",
     "studyStats"
@@ -531,47 +602,15 @@ chrome.tabs.onUpdated.addListener(async (tabId, changeInfo, tab) => {
 
   if (!status.isActive) return;
 
-  let isBlocked = false;
-  let blockReason = status.reason || "session";
-
-  // 1. Bloqueo quirúrgico de YouTube Shorts (Focus Goat PRO)
-  if (data.isPro && data.blockYoutubeShorts) {
-    try {
-      const u = new URL(urlToInspect);
-      if (u.hostname.includes("youtube.com") && u.pathname.startsWith("/shorts")) {
-        isBlocked = true;
-        blockReason = "shorts";
-      }
-    } catch (e) {}
-  }
-
-  // 2. Comprobar modo de bloqueo
-  if (!isBlocked) {
-    const isWhitelistMode = data.isPro && data.blockMode === "whitelist";
-    if (isWhitelistMode) {
-      // Modo Solo Estudio: Bloquear todo excepto las webs autorizadas
-      const isAllowed = isWhitelistedUrl(urlToInspect, data.whitelistSites);
-      if (!isAllowed) {
-        isBlocked = true;
-        blockReason = "whitelist";
-      }
-    } else {
-      // Modo Lista Negra estándar
-      if (isBlockedUrl(urlToInspect, data.blockedSites || [])) {
-        isBlocked = true;
-        blockReason = "blacklist";
-      }
-    }
-  }
-
-  if (isBlocked) {
+  const check = await checkUrlBlocked(urlToInspect);
+  if (check.isBlocked) {
     // Registrar tentación evitada en las estadísticas
     const stats = data.studyStats || { totalMinutes: 0, streakDays: 1, sessionsCompleted: 0, blockedAttempts: 0, dailyHistory: {} };
     stats.blockedAttempts = (stats.blockedAttempts || 0) + 1;
     await chrome.storage.local.set({ studyStats: stats });
 
     const isStrict = data.isPro && data.strictMode;
-    const redirectUrl = `${blockPagePrefix}?target=${encodeURIComponent(urlToInspect)}&reason=${encodeURIComponent(blockReason)}&remainingMs=${status.remainingMs}&strict=${isStrict ? "1" : "0"}&isPro=${data.isPro ? "1" : "0"}`;
+    const redirectUrl = `${blockPagePrefix}?target=${encodeURIComponent(urlToInspect)}&reason=${encodeURIComponent(check.reason)}&remainingMs=${status.remainingMs}&strict=${isStrict ? "1" : "0"}&isPro=${data.isPro ? "1" : "0"}`;
     chrome.tabs.update(tabId, { url: redirectUrl });
   }
 });
@@ -910,4 +949,38 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
     });
     return true;
   }
+
+  // Notificación de sitio eliminado o lista actualizada -> desbloquear pestañas de inmediato
+  if (request.action === "siteRemoved" || request.action === "sitesUpdated") {
+    unblockTabsNoLongerBlocked().then(() => {
+      sendResponse({ success: true });
+    });
+    return true;
+  }
+
+  // Comprobar estado de bloqueo de una URL específica desde blocked.js
+  if (request.action === "checkUrlStatus" && request.url) {
+    checkUrlBlocked(request.url).then((res) => {
+      sendResponse(res);
+    });
+    return true;
+  }
+
+  // Prueba de sonido de campana desde Opciones
+  if (request.action === "testFinishSound") {
+    playFinishSound().then(() => {
+      sendResponse({ success: true });
+    });
+    return true;
+  }
 });
+
+// Desbloquear pestañas de forma reactiva cuando cambie la lista de bloqueo o el modo en almacenamiento
+chrome.storage.onChanged.addListener((changes, area) => {
+  if (area === "local") {
+    if (changes.blockedSites || changes.whitelistSites || changes.blockMode || changes.enabled || changes.isPro) {
+      unblockTabsNoLongerBlocked();
+    }
+  }
+});
+

@@ -92,6 +92,22 @@
             </button>
             <button type="button" class="emergency-link" id="btnUnlockEmergency">Pausa de emergencia</button>
           </div>
+
+          <!-- Comprobación directa de desbloqueo -->
+          <div class="unblock-check-container" id="unblockCheckContainer">
+            <button type="button" class="btn-check-unblock" id="btnCheckUnblock">
+              <span>¿Has eliminado este sitio de la lista? Haz clic para entrar ahora ➜</span>
+            </button>
+          </div>
+
+          <!-- Alerta informativa si está bloqueado por Modo Solo Estudio (Whitelist PRO) -->
+          <div class="whitelist-info-card hidden" id="whitelistAlertBox">
+            <span class="whitelist-info-icon">🎓</span>
+            <div class="whitelist-info-text">
+              <strong>Modo Solo Estudio (Whitelist PRO) activo</strong>
+              <p>Este sitio no está en tu lista de apuntes autorizados. Para entrar, añádelo a tu lista blanca en Opciones o vuelve a la Lista Negra estándar.</p>
+            </div>
+          </div>
         </div>
       </div>
 

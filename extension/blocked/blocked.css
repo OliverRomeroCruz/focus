@@ -598,3 +598,70 @@ html, body {
     );
   }
 }
+
+/* Botón de comprobación directa de desbloqueo */
+.unblock-check-container {
+  margin-top: 0.5rem;
+  width: 100%;
+}
+
+.btn-check-unblock {
+  background: rgba(17, 17, 15, 0.05);
+  border: 1px dashed rgba(17, 17, 15, 0.25);
+  border-radius: 10px;
+  padding: 0.55rem 0.95rem;
+  font-family: var(--font-body);
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: var(--color-ink);
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  transition: all 0.2s ease;
+}
+
+.btn-check-unblock:hover {
+  background: var(--color-ink);
+  color: var(--color-ivory);
+  border-style: solid;
+  border-color: var(--color-ink);
+  transform: translateY(-1px);
+}
+
+/* Alerta Informativa Modo Solo Estudio */
+.whitelist-info-card {
+  margin-top: 0.85rem;
+  padding: 0.85rem 1rem;
+  background: rgba(59, 130, 246, 0.08);
+  border: 1px solid rgba(59, 130, 246, 0.25);
+  border-radius: 12px;
+  display: flex;
+  align-items: flex-start;
+  gap: 0.75rem;
+  text-align: left;
+}
+
+.whitelist-info-card.hidden {
+  display: none !important;
+}
+
+.whitelist-info-icon {
+  font-size: 1.4rem;
+  line-height: 1;
+}
+
+.whitelist-info-text strong {
+  display: block;
+  font-size: 0.82rem;
+  color: #1e40af;
+  font-weight: 700;
+}
+
+.whitelist-info-text p {
+  font-size: 0.75rem;
+  color: #1e3a8a;
+  margin-top: 0.2rem;
+  line-height: 1.35;
+}
+

@@ -146,31 +146,7 @@
             </label>
           </div>
 
-          <!-- 3. Alerta Sonora de Campana -->
-          <div class="pro-setting-item">
-            <div class="setting-info">
-              <strong>Campana Armónica de Finalización 🔔</strong>
-              <p>Emite un sonido de campana suave y limpio cuando el reloj llega a 00:00 (incluso minimizado).</p>
-            </div>
-            <label class="switch" title="Activar/desactivar campana sonora">
-              <input type="checkbox" id="toggleSoundAlert" checked>
-              <span class="slider"></span>
-            </label>
-          </div>
-
-          <!-- 4. Notificaciones Nativas de Escritorio -->
-          <div class="pro-setting-item">
-            <div class="setting-info">
-              <strong>Notificaciones de Escritorio 🏆</strong>
-              <p>Muestra un aviso emergente nativo en Windows al completar tu bloque de concentración.</p>
-            </div>
-            <label class="switch" title="Activar/desactivar notificaciones nativas">
-              <input type="checkbox" id="toggleNotifications" checked>
-              <span class="slider"></span>
-            </label>
-          </div>
-
-          <!-- 5. Reto Mental Antiprocrastinación -->
+          <!-- 3. Reto Mental Antiprocrastinación -->
           <div class="pro-setting-item">
             <div class="setting-info">
               <strong>Reto Mental en Desbloqueo 🧠</strong>
@@ -182,7 +158,7 @@
             </label>
           </div>
 
-          <!-- 6. Redirección Inmediata Anti-Tentación -->
+          <!-- 4. Redirección Inmediata Anti-Tentación -->
           <div class="pro-setting-item">
             <div class="setting-info">
               <strong>Blindaje Inmediato ⚡</strong>
@@ -194,7 +170,7 @@
             </label>
           </div>
 
-          <!-- 7. Selector de Modo de Bloqueo -->
+          <!-- 5. Selector de Modo de Bloqueo -->
           <div class="pro-setting-item full-width-item">
             <div class="setting-info">
               <strong>Estrategia de Concentración:</strong>
@@ -210,7 +186,7 @@
             </div>
           </div>
 
-          <!-- 8. Activación de Cupón / Licencia (Oculto automáticamente si ya eres PRO) -->
+          <!-- 6. Activación de Cupón / Licencia (Oculto automáticamente si ya eres PRO) -->
           <div class="pro-setting-item license-item full-width-item" id="proLicenseSection">
             <div class="setting-info">
               <strong>Activar Cupón o Clave de Licencia PRO 🎟️</strong>
@@ -225,12 +201,60 @@
         <div class="opt-license-feedback" id="optLicenseFeedback"></div>
       </section>
 
+      <!-- Sección General: Alertas y Sonidos de Finalización (Gratuito y PRO) -->
+      <section class="card-section general-alerts-card" id="alertsCard">
+        <div class="section-head">
+          <div class="section-title-group">
+            <div class="title-with-badge">
+              <h2>Alertas y Sonidos de Finalización 🔔</h2>
+              <span class="plan-tag is-free-pro">GRATIS & PRO</span>
+            </div>
+            <p>Avisos audibles y visuales al completar el temporizador. Incluidos tanto en la versión normal como en PRO.</p>
+          </div>
+        </div>
+
+        <div class="general-settings-grid">
+          <!-- 1. Campana Sonora de Finalización -->
+          <div class="general-setting-item">
+            <div class="setting-info">
+              <div class="setting-title-row">
+                <strong>Campana Armónica de Finalización 🔔</strong>
+                <span class="free-pill">PLAN NORMAL Y PRO</span>
+              </div>
+              <p>Emite un sonido de campana suave y limpio cuando el reloj llega a 00:00 (suena aunque tengas Chrome minimizado o estés en otra pestaña).</p>
+            </div>
+            <div class="setting-controls">
+              <button type="button" class="btn-test-sound" id="btnTestSound" title="Comprobar cómo suena la campana">🔊 Probar sonido</button>
+              <label class="switch" title="Activar/desactivar campana sonora">
+                <input type="checkbox" id="toggleSoundAlert" checked>
+                <span class="slider"></span>
+              </label>
+            </div>
+          </div>
+
+          <!-- 2. Notificaciones Nativas de Escritorio -->
+          <div class="general-setting-item">
+            <div class="setting-info">
+              <div class="setting-title-row">
+                <strong>Notificaciones de Escritorio 🏆</strong>
+                <span class="free-pill">PLAN NORMAL Y PRO</span>
+              </div>
+              <p>Muestra un aviso emergente en tu sistema operativo al completar tu bloque de concentración.</p>
+            </div>
+            <label class="switch" title="Activar/desactivar notificaciones nativas">
+              <input type="checkbox" id="toggleNotifications" checked>
+              <span class="slider"></span>
+            </label>
+          </div>
+        </div>
+      </section>
+
       <!-- Sección 1: Sitios Bloqueados -->
       <section class="card-section">
         <div class="section-head">
           <div class="section-title-group">
             <h2>Sitios Bloqueados</h2>
-            <p>Introduce los dominios de las páginas que quieres bloquear durante tus sesiones y rutinas.</p>
+            <p>Introduce los dominios que quieres bloquear. Si eliminas un sitio de la lista, se desbloqueará de inmediato en tus pestañas abiertas.</p>
           </div>
           <span class="badge-count" id="blockedCount">0 sitios</span>
         </div>
