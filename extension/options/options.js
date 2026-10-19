@@ -1,23 +1,28 @@
 /**
  * FOCUS GOAT — Lógica del panel de opciones y rutinas
+ * Gestión de sitios, rutinas semanales, límites Freemium y sistema Focus Goat PRO.
  */
-
-const DEFAULT_QUOTES = [
-  "El dolor de la disciplina pesa gramos; el del arrepentimiento, toneladas.",
-  "¿De verdad vas a tirar tu progreso por 5 minutos de dopamina barata?",
-  "Los que no tienen metas trabajan para los que sí las tienen. Concéntrate.",
-  "Lo que hagas hoy en silencio gritará mañana en tus resultados.",
-  "Los mediocres se distraen. Los GOATs construyen su legado.",
-  "Cierra esta pestaña. Tu futuro yo te lo agradecerá eternamente.",
-  "El examen o proyecto no se va a aprobar solo. Vuelve a la mesa.",
-  "No te detengas cuando estés cansado, detente cuando hayas terminado.",
-  "ARE you sure? La grandeza exige eliminar el ruido.",
-  "Tu mayor competidor está estudiando ahora mismo. ¿Y tú qué haces?"
-];
 
 const DAY_NAMES = ["Dom", "Lun", "Mar", "Mié", "Jue", "Vie", "Sáb"];
 
 document.addEventListener("DOMContentLoaded", async () => {
+  // Elementos PRO
+  const planTag = document.getElementById("planTag");
+  const btnOptionsUpgrade = document.getElementById("btnOptionsUpgrade");
+  const toggleStrictMode = document.getElementById("toggleStrictMode");
+  const optLicenseInput = document.getElementById("optLicenseInput");
+  const btnOptActivate = document.getElementById("btnOptActivate");
+  const optLicenseFeedback = document.getElementById("optLicenseFeedback");
+
+  // Modal Upgrade en Opciones
+  const optionsUpgradeModal = document.getElementById("optionsUpgradeModal");
+  const btnCloseOptModal = document.getElementById("btnCloseOptModal");
+  const optModalKeyInput = document.getElementById("optModalKeyInput");
+  const btnOptModalActivate = document.getElementById("btnOptModalActivate");
+  const optModalFeedback = document.getElementById("optModalFeedback");
+  const btnOptCheckoutMonthly = document.getElementById("btnOptCheckoutMonthly");
+  const btnOptCheckoutLifetime = document.getElementById("btnOptCheckoutLifetime");
+
   // Elementos Sitios Bloqueados
   const siteListEl = document.getElementById("siteList");
   const addSiteForm = document.getElementById("addSiteForm");
@@ -27,6 +32,7 @@ document.addEventListener("DOMContentLoaded", async () => {
 
   // Elementos Rutinas
   const routineListEl = document.getElementById("routineList");
+  const routineCountEl = document.getElementById("routineCount");
   const btnToggleNewRoutine = document.getElementById("btnToggleNewRoutine");
   const routineForm = document.getElementById("routineForm");
   const btnCancelRoutine = document.getElementById("btnCancelRoutine");
@@ -36,9 +42,11 @@ document.addEventListener("DOMContentLoaded", async () => {
   const daysSelectorEl = document.getElementById("daysSelector");
 
   // Cargar estado inicial desde storage
-  let state = await chrome.storage.local.get(["blockedSites", "routines"]);
+  let state = await chrome.storage.local.get(["blockedSites", "routines", "isPro", "strictMode"]);
   let blockedSites = state.blockedSites || [];
   let routines = state.routines || [];
+  let isPro = !!state.isPro;
+  let strictMode = !!state.strictMode;
 
   function cleanDomain(input) {
     let domain = input.trim().toLowerCase();
@@ -49,11 +57,125 @@ document.addEventListener("DOMContentLoaded", async () => {
   }
 
   // ==========================================
-  // 1. GESTIÓN DE SITIOS BLOQUEADOS
+  // 1. SISTEMA PRO & LICENCIAS
+  // ==========================================
+  function updateProUI() {
+    if (isPro) {
+      planTag.textContent = "👑 LICENCIA PRO ACTIVA";
+      planTag.classList.add("is-pro");
+      btnOptionsUpgrade.textContent = "Plan PRO Activo ✓";
+      btnOptionsUpgrade.style.background = "#22c55e";
+      btnOptionsUpgrade.style.boxShadow = "none";
+      btnOptionsUpgrade.disabled = true;
+    } else {
+      planTag.textContent = "PLAN GRATUITO";
+      planTag.classList.remove("is-pro");
+      btnOptionsUpgrade.textContent = "Mejorar a PRO";
+      btnOptionsUpgrade.style.background = "var(--color-coral)";
+      btnOptionsUpgrade.disabled = false;
+    }
+
+    toggleStrictMode.checked = isPro && strictMode;
+    renderSites();
+    renderRoutines();
+  }
+
+  // Activar Modo Estricto
+  toggleStrictMode.addEventListener("change", async (e) => {
+    if (!isPro) {
+      toggleStrictMode.checked = false;
+      openOptModal();
+      return;
+    }
+
+    strictMode = toggleStrictMode.checked;
+    await chrome.storage.local.set({ strictMode });
+  });
+
+  // Modal Upgrade
+  function openOptModal() {
+    if (optionsUpgradeModal) {
+      optionsUpgradeModal.classList.remove("hidden");
+      optModalFeedback.textContent = "";
+      optModalFeedback.className = "license-feedback";
+    }
+  }
+
+  function closeOptModal() {
+    if (optionsUpgradeModal) {
+      optionsUpgradeModal.classList.add("hidden");
+    }
+  }
+
+  btnOptionsUpgrade.addEventListener("click", openOptModal);
+  btnCloseOptModal.addEventListener("click", closeOptModal);
+
+  // Activación de Licencia desde la tarjeta principal
+  btnOptActivate.addEventListener("click", () => {
+    const key = (optLicenseInput.value || "").trim();
+    if (!key) {
+      optLicenseFeedback.textContent = "Introduce una clave de licencia.";
+      optLicenseFeedback.className = "opt-license-feedback error";
+      return;
+    }
+
+    chrome.runtime.sendMessage({ action: "activateLicense", key }, (res) => {
+      if (res && res.success) {
+        isPro = true;
+        optLicenseFeedback.textContent = "¡Focus Goat PRO activado con éxito! 👑";
+        optLicenseFeedback.className = "opt-license-feedback success";
+        updateProUI();
+      } else {
+        optLicenseFeedback.textContent = res ? res.message : "Clave no válida.";
+        optLicenseFeedback.className = "opt-license-feedback error";
+      }
+    });
+  });
+
+  // Activación de Licencia desde el Modal
+  btnOptModalActivate.addEventListener("click", () => {
+    const key = (optModalKeyInput.value || "").trim();
+    if (!key) {
+      optModalFeedback.textContent = "Introduce una clave.";
+      optModalFeedback.className = "license-feedback error";
+      return;
+    }
+
+    chrome.runtime.sendMessage({ action: "activateLicense", key }, (res) => {
+      if (res && res.success) {
+        isPro = true;
+        optModalFeedback.textContent = "¡Activado con éxito! 👑";
+        optModalFeedback.className = "license-feedback success";
+        setTimeout(() => {
+          closeOptModal();
+          updateProUI();
+        }, 1200);
+      } else {
+        optModalFeedback.textContent = res ? res.message : "Clave no válida.";
+        optModalFeedback.className = "license-feedback error";
+      }
+    });
+  });
+
+  // Botones checkout en opciones
+  function handleOptCheckout() {
+    alert("Redirigiendo a la pasarela de compra...\n\nNota de prueba: Puedes activar PRO con la clave:\n👉 GOAT2026 o OLIVER-PRO");
+    optModalKeyInput.value = "GOAT2026";
+    optModalKeyInput.focus();
+  }
+  btnOptCheckoutMonthly.addEventListener("click", handleOptCheckout);
+  btnOptCheckoutLifetime.addEventListener("click", handleOptCheckout);
+
+  // ==========================================
+  // 2. GESTIÓN DE SITIOS BLOQUEADOS (Límite Free: 5)
   // ==========================================
   function renderSites() {
     siteListEl.innerHTML = "";
-    blockedCountEl.textContent = `${blockedSites.length} sitio${blockedSites.length === 1 ? "" : "s"}`;
+    if (isPro) {
+      blockedCountEl.textContent = `${blockedSites.length} sitios (PRO ilimitado)`;
+    } else {
+      blockedCountEl.textContent = `${blockedSites.length} / 5 sitios (Free)`;
+    }
 
     if (!blockedSites.length) {
       siteListEl.innerHTML = `<li style="grid-column: 1 / -1; text-align: center; color: #888; padding: 1rem;">No tienes ningún sitio bloqueado aún.</li>`;
@@ -83,6 +205,11 @@ document.addEventListener("DOMContentLoaded", async () => {
     const domain = cleanDomain(newSiteInput.value);
     if (!domain) return;
 
+    if (!isPro && blockedSites.length >= 5 && !blockedSites.includes(domain)) {
+      openOptModal();
+      return;
+    }
+
     if (!blockedSites.includes(domain)) {
       blockedSites.push(domain);
       await chrome.storage.local.set({ blockedSites });
@@ -98,6 +225,12 @@ document.addEventListener("DOMContentLoaded", async () => {
     const chip = e.target.closest(".chip");
     if (!chip) return;
     const site = chip.dataset.site;
+
+    if (!isPro && blockedSites.length >= 5 && !blockedSites.includes(site)) {
+      openOptModal();
+      return;
+    }
+
     if (site && !blockedSites.includes(site)) {
       blockedSites.push(site);
       await chrome.storage.local.set({ blockedSites });
@@ -107,9 +240,13 @@ document.addEventListener("DOMContentLoaded", async () => {
 
 
   // ==========================================
-  // 2. GESTIÓN DE RUTINAS SEMANALES
+  // 3. GESTIÓN DE RUTINAS SEMANALES (Límite Free: 1)
   // ==========================================
   btnToggleNewRoutine.addEventListener("click", () => {
+    if (!isPro && routines.length >= 1) {
+      openOptModal();
+      return;
+    }
     routineForm.classList.toggle("hidden");
   });
 
@@ -127,6 +264,13 @@ document.addEventListener("DOMContentLoaded", async () => {
 
   function renderRoutines() {
     routineListEl.innerHTML = "";
+    if (routineCountEl) {
+      if (isPro) {
+        routineCountEl.textContent = `${routines.length} rutinas (PRO ilimitado)`;
+      } else {
+        routineCountEl.textContent = `${routines.length} / 1 rutina (Free)`;
+      }
+    }
 
     if (!routines.length) {
       routineListEl.innerHTML = `<div style="text-align: center; color: #888; padding: 1.5rem; background: #fafafa; border-radius: 12px;">No hay rutinas creadas. Pulsa <strong>+ Nueva Rutina</strong> para programar tu estudio.</div>`;
@@ -170,6 +314,12 @@ document.addEventListener("DOMContentLoaded", async () => {
 
   routineForm.addEventListener("submit", async (e) => {
     e.preventDefault();
+
+    if (!isPro && routines.length >= 1) {
+      openOptModal();
+      return;
+    }
+
     const name = routineNameInput.value.trim() || "Sesión de Estudio";
     const selectedDays = Array.from(daysSelectorEl.querySelectorAll("input:checked")).map(cb => parseInt(cb.value, 10));
 
@@ -194,8 +344,6 @@ document.addEventListener("DOMContentLoaded", async () => {
     routineForm.classList.add("hidden");
   });
 
-
-  // Inicializar renderizados
-  renderSites();
-  renderRoutines();
+  // Inicializar estado y renderizados
+  updateProUI();
 });

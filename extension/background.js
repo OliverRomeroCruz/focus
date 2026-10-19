@@ -1,6 +1,6 @@
 /**
  * FOCUS GOAT — Service Worker (Manifest V3)
- * Gestión de sesiones, rutinas semanales y redirección a pantalla de bloqueo.
+ * Gestión de sesiones, rutinas semanales, límites Freemium y sistema Focus Goat PRO.
  */
 
 const DEFAULT_BLOCKED_SITES = [
@@ -8,12 +8,7 @@ const DEFAULT_BLOCKED_SITES = [
   "instagram.com",
   "tiktok.com",
   "twitter.com",
-  "x.com",
-  "reddit.com",
-  "facebook.com",
-  "netflix.com",
-  "twitch.tv",
-  "discord.com"
+  "x.com"
 ];
 
 const DEFAULT_QUOTES = [
@@ -33,14 +28,14 @@ const DEFAULT_ROUTINES = [
   {
     id: "routine_weekdays",
     name: "Estudio Tardes (L-V)",
-    days: [1, 2, 3, 4, 5], // 1=Lunes ... 5=Viernes
+    days: [1, 2, 3, 4, 5],
     startTime: "16:00",
     endTime: "20:30",
     enabled: true
   }
 ];
 
-// Inicialización de datos
+// Inicialización de datos y esquema PRO
 chrome.runtime.onInstalled.addListener(async () => {
   const data = await chrome.storage.local.get([
     "enabled",
@@ -48,7 +43,11 @@ chrome.runtime.onInstalled.addListener(async () => {
     "routines",
     "quotes",
     "sessionActive",
-    "sessionEndTime"
+    "sessionEndTime",
+    "sessionDurationMins",
+    "isPro",
+    "strictMode",
+    "studyStats"
   ]);
 
   const updates = {};
@@ -58,22 +57,34 @@ chrome.runtime.onInstalled.addListener(async () => {
   if (!data.quotes) updates.quotes = DEFAULT_QUOTES;
   if (data.sessionActive === undefined) updates.sessionActive = false;
   if (data.sessionEndTime === undefined) updates.sessionEndTime = 0;
+  if (data.sessionDurationMins === undefined) updates.sessionDurationMins = 0;
+
+  // Estado Freemium / PRO
+  if (data.isPro === undefined) updates.isPro = false;
+  if (data.strictMode === undefined) updates.strictMode = false;
+  if (!data.studyStats) {
+    updates.studyStats = {
+      totalMinutes: 0,
+      streakDays: 1,
+      sessionsCompleted: 0,
+      lastDate: new Date().toISOString().split("T")[0]
+    };
+  }
 
   if (Object.keys(updates).length > 0) {
     await chrome.storage.local.set(updates);
   }
 
-  // Alarma cada minuto para chequear rutinas y actualizar badge
   chrome.alarms.create("focus_heartbeat", { periodInMinutes: 1 });
   updateBadgeState();
 });
 
-// Comprobar si una rutina horaria está activa en este instante
+// Comprobar si una rutina horaria está activa
 function checkActiveRoutine(routines) {
   if (!routines || !routines.length) return null;
 
   const now = new Date();
-  const currentDay = now.getDay(); // 0 = Domingo, 1 = Lunes...
+  const currentDay = now.getDay();
   const currentMinutes = now.getHours() * 60 + now.getMinutes();
 
   for (const r of routines) {
@@ -86,7 +97,6 @@ function checkActiveRoutine(routines) {
     const endTotal = endH * 60 + endM;
 
     if (currentMinutes >= startTotal && currentMinutes < endTotal) {
-      // Minutos restantes hasta fin de rutina
       const remainingMinutes = endTotal - currentMinutes;
       return { routine: r, remainingMinutes };
     }
@@ -95,35 +105,50 @@ function checkActiveRoutine(routines) {
   return null;
 }
 
-// Evalúa si el modo Focus está activo (por temporizador o por rutina programada)
+// Evalúa estado de Focus
 async function getFocusStatus() {
   const data = await chrome.storage.local.get([
     "enabled",
     "sessionActive",
     "sessionEndTime",
-    "routines"
+    "sessionDurationMins",
+    "routines",
+    "isPro",
+    "strictMode",
+    "studyStats"
   ]);
 
   if (data.enabled === false) {
-    return { isActive: false, reason: "disabled", remainingMs: 0 };
+    return { 
+      isActive: false, 
+      reason: "disabled", 
+      remainingMs: 0,
+      isPro: !!data.isPro,
+      strictMode: !!data.strictMode,
+      studyStats: data.studyStats
+    };
   }
 
   const now = Date.now();
 
-  // 1. Temporizador manual activo
+  // 1. Temporizador manual
   if (data.sessionActive && data.sessionEndTime && data.sessionEndTime > now) {
     return {
       isActive: true,
       reason: "timer",
       remainingMs: data.sessionEndTime - now,
-      endTime: data.sessionEndTime
+      endTime: data.sessionEndTime,
+      isPro: !!data.isPro,
+      strictMode: !!data.strictMode,
+      studyStats: data.studyStats
     };
   } else if (data.sessionActive && data.sessionEndTime && data.sessionEndTime <= now) {
-    // Sesión finalizada
-    await chrome.storage.local.set({ sessionActive: false, sessionEndTime: 0 });
+    // Sesión finalizada con éxito: registrar estadísticas
+    await recordCompletedSession(data.sessionDurationMins || 25);
+    await chrome.storage.local.set({ sessionActive: false, sessionEndTime: 0, sessionDurationMins: 0 });
   }
 
-  // 2. Rutina programada por día y hora
+  // 2. Rutina programada
   const activeRoutine = checkActiveRoutine(data.routines);
   if (activeRoutine) {
     return {
@@ -131,23 +156,54 @@ async function getFocusStatus() {
       reason: "routine",
       routineName: activeRoutine.routine.name,
       remainingMs: activeRoutine.remainingMinutes * 60 * 1000,
-      remainingMinutes: activeRoutine.remainingMinutes
+      remainingMinutes: activeRoutine.remainingMinutes,
+      isPro: !!data.isPro,
+      strictMode: !!data.strictMode,
+      studyStats: data.studyStats
     };
   }
 
-  return { isActive: false, reason: "idle", remainingMs: 0 };
+  return { 
+    isActive: false, 
+    reason: "idle", 
+    remainingMs: 0,
+    isPro: !!data.isPro,
+    strictMode: !!data.strictMode,
+    studyStats: data.studyStats
+  };
 }
 
-// Comprueba si una URL coincide con la lista de dominios bloqueados
+// Registro de estadísticas y racha de estudio
+async function recordCompletedSession(minutes) {
+  const data = await chrome.storage.local.get(["studyStats"]);
+  const stats = data.studyStats || { totalMinutes: 0, streakDays: 1, sessionsCompleted: 0, lastDate: "" };
+
+  const today = new Date().toISOString().split("T")[0];
+  const last = stats.lastDate;
+
+  if (last !== today) {
+    const yesterday = new Date(Date.now() - 86400000).toISOString().split("T")[0];
+    if (last === yesterday) {
+      stats.streakDays += 1;
+    } else if (last) {
+      stats.streakDays = 1;
+    }
+    stats.lastDate = today;
+  }
+
+  stats.totalMinutes += minutes;
+  stats.sessionsCompleted += 1;
+
+  await chrome.storage.local.set({ studyStats: stats });
+}
+
+// Comprueba si una URL coincide con la lista de bloqueo
 function isBlockedUrl(urlStr, blockedSites) {
   if (!urlStr || !blockedSites || !blockedSites.length) return false;
 
   try {
     const url = new URL(urlStr);
-    // Solo bloquear protocolos web estándar
     if (url.protocol !== "http:" && url.protocol !== "https:") return false;
-
-    // Ignorar URLs internas de la extensión
     if (url.hostname === chrome.runtime.id) return false;
 
     const host = url.hostname.toLowerCase();
@@ -162,25 +218,25 @@ function isBlockedUrl(urlStr, blockedSites) {
   }
 }
 
-// Interceptar navegación en pestañas
+// Interceptar pestañas y redirigir
 chrome.tabs.onUpdated.addListener(async (tabId, changeInfo, tab) => {
-  // Solo actuar si hay URL y está cargando
   const urlToInspect = changeInfo.url || tab.url;
   if (!urlToInspect) return;
 
   const blockPagePrefix = chrome.runtime.getURL("blocked/blocked.html");
   if (urlToInspect.startsWith(blockPagePrefix)) return;
 
-  const data = await chrome.storage.local.get(["blockedSites"]);
+  const data = await chrome.storage.local.get(["blockedSites", "strictMode", "isPro"]);
   const status = await getFocusStatus();
 
   if (status.isActive && isBlockedUrl(urlToInspect, data.blockedSites || [])) {
-    const redirectUrl = `${blockPagePrefix}?target=${encodeURIComponent(urlToInspect)}&reason=${encodeURIComponent(status.reason)}&remainingMs=${status.remainingMs}`;
+    const isStrict = data.isPro && data.strictMode;
+    const redirectUrl = `${blockPagePrefix}?target=${encodeURIComponent(urlToInspect)}&reason=${encodeURIComponent(status.reason)}&remainingMs=${status.remainingMs}&strict=${isStrict ? "1" : "0"}`;
     chrome.tabs.update(tabId, { url: redirectUrl });
   }
 });
 
-// Actualizar indicador Badge del icono de la extensión
+// Actualizar indicador Badge
 async function updateBadgeState() {
   const status = await getFocusStatus();
 
@@ -199,7 +255,7 @@ chrome.alarms.onAlarm.addListener((alarm) => {
   }
 });
 
-// Mensajería interna (desde popup o blocked page)
+// Mensajería interna (Popup, Blocked page, Options)
 chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
   if (request.action === "getStatus") {
     getFocusStatus().then(sendResponse);
@@ -207,10 +263,12 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
   }
 
   if (request.action === "startSession") {
-    const endTime = Date.now() + (request.minutes * 60 * 1000);
+    const mins = request.minutes || 25;
+    const endTime = Date.now() + (mins * 60 * 1000);
     chrome.storage.local.set({
       sessionActive: true,
       sessionEndTime: endTime,
+      sessionDurationMins: mins,
       enabled: true
     }).then(() => {
       updateBadgeState();
@@ -222,7 +280,8 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
   if (request.action === "stopSession") {
     chrome.storage.local.set({
       sessionActive: false,
-      sessionEndTime: 0
+      sessionEndTime: 0,
+      sessionDurationMins: 0
     }).then(() => {
       updateBadgeState();
       sendResponse({ success: true });
@@ -242,9 +301,20 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
   }
 
   if (request.action === "addCurrentSite" && request.domain) {
-    chrome.storage.local.get(["blockedSites"]).then((res) => {
+    chrome.storage.local.get(["blockedSites", "isPro"]).then((res) => {
       const current = res.blockedSites || [];
       const clean = request.domain.toLowerCase().trim();
+
+      // Control límite Free (máximo 5 sitios)
+      if (!res.isPro && current.length >= 5 && !current.includes(clean)) {
+        sendResponse({ 
+          success: false, 
+          isLimitReached: true, 
+          message: "Límite de 5 sitios en versión Free. Pasa a Focus Goat PRO para sitios ilimitados." 
+        });
+        return;
+      }
+
       if (!current.includes(clean)) {
         current.push(clean);
         chrome.storage.local.set({ blockedSites: current }).then(() => {
@@ -253,6 +323,51 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
       } else {
         sendResponse({ success: false, message: "Ya está en la lista" });
       }
+    });
+    return true;
+  }
+
+  // Activar Licencia PRO
+  if (request.action === "activateLicense") {
+    const key = (request.key || "").trim().toUpperCase();
+    // Claves válidas: formato GOAT-PRO-... o GOAT2026 / OLIVER-PRO
+    const isValid = /^GOAT-PRO-[A-Z0-9]{4}-[A-Z0-9]{4}$/.test(key) || 
+                    key === "GOAT2026" || 
+                    key === "OLIVER-PRO" ||
+                    key === "FOCUSGOAT";
+
+    if (isValid) {
+      chrome.storage.local.set({ isPro: true, licenseKey: key }).then(() => {
+        sendResponse({ success: true, isPro: true });
+      });
+    } else {
+      sendResponse({ success: false, message: "Clave de licencia no válida." });
+    }
+    return true;
+  }
+
+  // Alternar modo PRO (para testing directo)
+  if (request.action === "toggleProMode") {
+    chrome.storage.local.get(["isPro"]).then((res) => {
+      const nextPro = !res.isPro;
+      chrome.storage.local.set({ isPro: nextPro }).then(() => {
+        sendResponse({ success: true, isPro: nextPro });
+      });
+    });
+    return true;
+  }
+
+  // Alternar Modo Estricto
+  if (request.action === "toggleStrictMode") {
+    chrome.storage.local.get(["strictMode", "isPro"]).then((res) => {
+      if (!res.isPro) {
+        sendResponse({ success: false, message: "El Modo Estricto requiere Focus Goat PRO." });
+        return;
+      }
+      const nextStrict = !res.strictMode;
+      chrome.storage.local.set({ strictMode: nextStrict }).then(() => {
+        sendResponse({ success: true, strictMode: nextStrict });
+      });
     });
     return true;
   }

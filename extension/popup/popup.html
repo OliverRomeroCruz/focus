@@ -17,7 +17,10 @@
       <div class="brand">
         <img src="../icons/icon48.png" alt="Focus Goat" class="brand-logo-img">
         <div class="brand-text">
-          <span class="brand-name">FOCUS GOAT</span>
+          <div class="brand-title-row">
+            <span class="brand-name">FOCUS GOAT</span>
+            <span class="plan-badge" id="planBadge">FREE</span>
+          </div>
           <span class="brand-tag">BLINDAJE DE ESTUDIO</span>
         </div>
       </div>
@@ -28,6 +31,24 @@
       </label>
     </header>
 
+    <!-- Banner PRO (Solo visible para usuarios Free) -->
+    <div class="pro-promo-banner" id="proBanner">
+      <div class="pro-banner-text">
+        <span class="crown-icon">👑</span>
+        <div>
+          <strong>Focus Goat PRO</strong>
+          <p>Sitios y rutinas ilimitadas + Modo Estricto</p>
+        </div>
+      </div>
+      <button type="button" class="btn-upgrade-action" id="btnOpenUpgrade">Mejorar</button>
+    </div>
+
+    <!-- Estadísticas rápidas de estudio -->
+    <div class="stats-bar">
+      <span class="stat-pill" id="statStreak">🔥 1 día de racha</span>
+      <span class="stat-pill" id="statMinutes">⏱️ 0 min enfocados</span>
+    </div>
+
     <!-- Estado Actual -->
     <section class="status-panel" id="statusPanel">
       <div class="status-top">
@@ -37,6 +58,20 @@
       <div class="countdown-large" id="popupCountdown">00:00:00</div>
       <div class="status-desc" id="statusDesc">Inicia un bloque de estudio para blindar tu mente.</div>
       <button type="button" class="btn-stop-session hidden" id="btnStopSession">Detener sesión actual</button>
+    </section>
+
+    <!-- Sonidos de concentración ambiental (PRO) -->
+    <section class="ambient-sound-section">
+      <div class="ambient-header">
+        <span class="section-title">AUDIO DE ESTUDIO 👑</span>
+        <span class="sound-current" id="soundStatus">Silencio</span>
+      </div>
+      <div class="sound-chips">
+        <button type="button" class="chip-sound is-active" data-sound="none">Off</button>
+        <button type="button" class="chip-sound" data-sound="rain">🌧️ Lluvia</button>
+        <button type="button" class="chip-sound" data-sound="white">🌊 Olas</button>
+        <button type="button" class="chip-sound" data-sound="focus">🎧 Ruido Rosa</button>
+      </div>
     </section>
 
     <!-- Botones rápidos de sesión -->
@@ -76,6 +111,46 @@
         <span>Configurar Rutinas y Sitios</span>
       </button>
     </footer>
+
+    <!-- Modal para Mejorar a Focus Goat PRO -->
+    <div class="upgrade-modal hidden" id="upgradeModal">
+      <div class="upgrade-modal-card">
+        <button type="button" class="btn-close-modal" id="btnCloseUpgrade">&times;</button>
+        <div class="upgrade-hero">
+          <span class="upgrade-crown">👑</span>
+          <h3>Focus Goat PRO</h3>
+          <p>Desbloquea el poder definitivo para arrasar en tus estudios.</p>
+        </div>
+
+        <ul class="pro-perks-list">
+          <li>✨ <strong>Sitios ilimitados:</strong> Sin tope de 5 páginas.</li>
+          <li>📅 <strong>Rutinas infinitas:</strong> Programa todos tus horarios.</li>
+          <li>🛡️ <strong>Modo Estricto:</strong> Imposible de burlar en pleno estudio.</li>
+          <li>🌧️ <strong>Audio Ambiental:</strong> Sonidos binaurales y lluvia.</li>
+          <li>📊 <strong>Estadísticas y rachas:</strong> Mide tus horas reales.</li>
+        </ul>
+
+        <div class="pricing-cards">
+          <div class="price-box">
+            <span class="price-title">Mensual</span>
+            <span class="price-num">2,99 €<span>/mes</span></span>
+            <button type="button" class="btn-checkout" id="btnCheckoutMonthly">Suscribirse</button>
+          </div>
+          <div class="price-box featured">
+            <span class="badge-featured">MÁS POPULAR</span>
+            <span class="price-title">De por vida</span>
+            <span class="price-num">19,99 €<span>pago único</span></span>
+            <button type="button" class="btn-checkout primary" id="btnCheckoutLifetime">Comprar PRO</button>
+          </div>
+        </div>
+
+        <div class="license-form-row">
+          <input type="text" id="licenseKeyInput" placeholder="¿Tienes una clave? (ej: GOAT2026)" autocomplete="off">
+          <button type="button" class="btn-activate-key" id="btnActivateKey">Activar</button>
+        </div>
+        <div class="license-feedback" id="licenseFeedback"></div>
+      </div>
+    </div>
 
   </div>
 

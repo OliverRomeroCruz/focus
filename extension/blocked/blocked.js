@@ -100,6 +100,10 @@ document.addEventListener("DOMContentLoaded", async () => {
 
       remainingMs = status.remainingMs;
 
+      if (status.isPro && status.strictMode) {
+        setStrictModeActive();
+      }
+
       if (status.reason === "routine") {
         timerModeEl.textContent = `Rutina semanal: ${status.routineName || "Estudio"}`;
       } else {
@@ -108,6 +112,20 @@ document.addEventListener("DOMContentLoaded", async () => {
 
       updateDisplay();
     });
+  }
+
+  function setStrictModeActive() {
+    isStrict = true;
+    btnUnlockEmergency.textContent = "🔒 Modo Estricto PRO activo (Sin pausas)";
+    btnUnlockEmergency.title = "El Modo Estricto PRO está activo. No se permiten pausas de emergencia.";
+    btnUnlockEmergency.style.cursor = "not-allowed";
+    btnUnlockEmergency.style.opacity = "0.6";
+    btnUnlockEmergency.style.textDecoration = "none";
+  }
+
+  let isStrict = urlParams.get("strict") === "1";
+  if (isStrict) {
+    setStrictModeActive();
   }
 
   syncTimer();
@@ -133,6 +151,11 @@ document.addEventListener("DOMContentLoaded", async () => {
   let emergencyInterval = null;
 
   btnUnlockEmergency.addEventListener("click", () => {
+    if (isStrict) {
+      alert("Modo Estricto PRO activo:\n\nTu sesión de concentración está blindada y no admite pausas de emergencia. ¡Termina tu bloque de estudio!");
+      return;
+    }
+
     emergencyModal.classList.remove("hidden");
     let count = 5;
     emergencySecondsEl.textContent = count;

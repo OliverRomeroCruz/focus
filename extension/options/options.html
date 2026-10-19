@@ -30,6 +30,50 @@
 
     <main class="options-main">
 
+      <!-- Sección PRO: Licencia, Blindaje Estricto y Estado del Plan -->
+      <section class="card-section pro-card" id="proCard">
+        <div class="pro-card-header">
+          <div class="pro-title-group">
+            <span class="pro-badge-crown">👑</span>
+            <div>
+              <div class="pro-title-row">
+                <h2>FOCUS GOAT PRO</h2>
+                <span class="plan-tag" id="planTag">PLAN GRATUITO</span>
+              </div>
+              <p>Desbloquea blindaje estricto sin escape, sitios ilimitados, todas tus rutinas y sonidos de estudio.</p>
+            </div>
+          </div>
+          <button type="button" class="btn-upgrade-glow" id="btnOptionsUpgrade">Mejorar a PRO</button>
+        </div>
+
+        <div class="pro-settings-grid">
+          <!-- Modo Estricto Infranqueable -->
+          <div class="pro-setting-item">
+            <div class="setting-info">
+              <strong>Modo Estricto Infranqueable 🔒</strong>
+              <p>Elimina el botón de pausa de emergencia en la pantalla de bloqueo durante sesiones de estudio. Imposible de burlar.</p>
+            </div>
+            <label class="switch" title="Activar/desactivar modo estricto">
+              <input type="checkbox" id="toggleStrictMode">
+              <span class="slider"></span>
+            </label>
+          </div>
+
+          <!-- Activación de Licencia -->
+          <div class="pro-setting-item license-item">
+            <div class="setting-info">
+              <strong>Activar Clave de Licencia PRO</strong>
+              <p>Introduce tu clave de compra (Clave de prueba: <code>GOAT2026</code> o <code>OLIVER-PRO</code>).</p>
+            </div>
+            <div class="license-form">
+              <input type="text" id="optLicenseInput" placeholder="Ej: GOAT2026" autocomplete="off">
+              <button type="button" class="btn-primary" id="btnOptActivate">Activar</button>
+            </div>
+          </div>
+        </div>
+        <div class="opt-license-feedback" id="optLicenseFeedback"></div>
+      </section>
+
       <!-- Sección 1: Sitios Bloqueados -->
       <section class="card-section">
         <div class="section-head">
@@ -67,7 +111,6 @@
         </ul>
       </section>
 
-
       <!-- Sección 2: Rutinas Semanales -->
       <section class="card-section">
         <div class="section-head">
@@ -75,7 +118,10 @@
             <h2>Rutinas Semanales de Estudio</h2>
             <p>Programa horarios automáticos por día de la semana. Durante estas horas, el bloqueo se activará solo.</p>
           </div>
-          <button type="button" class="btn-secondary" id="btnToggleNewRoutine">+ Nueva Rutina</button>
+          <div class="routine-head-actions">
+            <span class="badge-count" id="routineCount">0 rutinas</span>
+            <button type="button" class="btn-secondary" id="btnToggleNewRoutine">+ Nueva Rutina</button>
+          </div>
         </div>
 
         <!-- Formulario para crear rutina (ocultable) -->
@@ -122,6 +168,47 @@
       </section>
 
     </main>
+
+    <!-- Modal para Mejorar a Focus Goat PRO en Opciones -->
+    <div class="upgrade-modal hidden" id="optionsUpgradeModal">
+      <div class="upgrade-modal-card">
+        <button type="button" class="btn-close-modal" id="btnCloseOptModal">&times;</button>
+        <div class="upgrade-hero">
+          <span class="upgrade-crown">👑</span>
+          <h3>Focus Goat PRO</h3>
+          <p>Desbloquea el poder definitivo para arrasar en tus estudios.</p>
+        </div>
+
+        <ul class="pro-perks-list">
+          <li>✨ <strong>Sitios ilimitados:</strong> Sin tope de 5 páginas.</li>
+          <li>📅 <strong>Rutinas infinitas:</strong> Programa todos tus horarios.</li>
+          <li>🛡️ <strong>Modo Estricto Infranqueable:</strong> Imposible de burlar en pleno estudio.</li>
+          <li>🌧️ <strong>Audio de concentración:</strong> Ruido rosa, lluvia y olas.</li>
+          <li>📊 <strong>Estadísticas y rachas:</strong> Mide tus horas reales.</li>
+        </ul>
+
+        <div class="pricing-cards">
+          <div class="price-box">
+            <span class="price-title">Mensual</span>
+            <span class="price-num">2,99 €<span>/mes</span></span>
+            <button type="button" class="btn-checkout" id="btnOptCheckoutMonthly">Suscribirse</button>
+          </div>
+          <div class="price-box featured">
+            <span class="badge-featured">MÁS POPULAR</span>
+            <span class="price-title">De por vida</span>
+            <span class="price-num">19,99 €<span>pago único</span></span>
+            <button type="button" class="btn-checkout primary" id="btnOptCheckoutLifetime">Comprar PRO</button>
+          </div>
+        </div>
+
+        <div class="license-form-row">
+          <input type="text" id="optModalKeyInput" placeholder="Clave (ej: GOAT2026)" autocomplete="off">
+          <button type="button" class="btn-activate-key" id="btnOptModalActivate">Activar</button>
+        </div>
+        <div class="license-feedback" id="optModalFeedback"></div>
+      </div>
+    </div>
+
   </div>
 
   <script src="options.js"></script>
