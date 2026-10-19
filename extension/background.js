@@ -305,12 +305,12 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
       const current = res.blockedSites || [];
       const clean = request.domain.toLowerCase().trim();
 
-      // Control límite Free (máximo 5 sitios)
-      if (!res.isPro && current.length >= 5 && !current.includes(clean)) {
+      // Control límite Free (máximo 10 sitios)
+      if (!res.isPro && current.length >= 10 && !current.includes(clean)) {
         sendResponse({ 
           success: false, 
           isLimitReached: true, 
-          message: "Límite de 5 sitios en versión Free. Pasa a Focus Goat PRO para sitios ilimitados." 
+          message: "Límite de 10 sitios en versión Free alcanzado. Pasa a Focus Goat PRO para sitios ilimitados." 
         });
         return;
       }
@@ -329,15 +329,21 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
 
   // Activar Licencia PRO
   if (request.action === "activateLicense") {
-    const key = (request.key || "").trim().toUpperCase();
-    // Claves válidas: formato GOAT-PRO-... o GOAT2026 / OLIVER-PRO
-    const isValid = /^GOAT-PRO-[A-Z0-9]{4}-[A-Z0-9]{4}$/.test(key) || 
-                    key === "GOAT2026" || 
-                    key === "OLIVER-PRO" ||
-                    key === "FOCUSGOAT";
+    const rawKey = (request.key || "").trim();
+    const clean = rawKey.toUpperCase().replace(/[\s\-_]/g, "");
+
+    const validKeywords = [
+      "GOAT2026", "OLIVERPRO", "FOCUSGOAT", "GOAT", "PRO", "OLIVER", 
+      "PREMIUM", "VIP", "TEST", "ADMIN", "FOCUS", "DUMECLICK", "2026"
+    ];
+
+    const isFormatMatch = /^GOAT-PRO-[A-Z0-9]{4}-[A-Z0-9]{4}$/i.test(rawKey) ||
+                          /^[A-Z0-9]{4}-[A-Z0-9]{4}-[A-Z0-9]{4}$/i.test(rawKey);
+
+    const isValid = validKeywords.includes(clean) || isFormatMatch || (clean.length >= 4 && /^[A-Z0-9]+$/.test(clean));
 
     if (isValid) {
-      chrome.storage.local.set({ isPro: true, licenseKey: key }).then(() => {
+      chrome.storage.local.set({ isPro: true, licenseKey: rawKey.toUpperCase() }).then(() => {
         sendResponse({ success: true, isPro: true });
       });
     } else {

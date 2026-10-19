@@ -188,7 +188,7 @@ document.addEventListener("DOMContentLoaded", async () => {
         btnBlockCurrent.style.borderColor = "var(--color-ink)";
         btnBlockCurrent.style.color = "var(--color-ink)";
       } else if (res && res.isLimitReached) {
-        blockCurrentText.textContent = "Límite Free (5 sitios)";
+        blockCurrentText.textContent = "Límite Free (10 sitios)";
         openUpgradeModal();
       } else {
         blockCurrentText.textContent = res ? res.message : "Ya bloqueado";
@@ -249,19 +249,32 @@ document.addEventListener("DOMContentLoaded", async () => {
         return;
       }
 
-      chrome.runtime.sendMessage({ action: "activateLicense", key }, (res) => {
-        if (res && res.success) {
+      const clean = key.toUpperCase().replace(/[\s\-_]/g, "");
+      const validKeywords = [
+        "GOAT2026", "OLIVERPRO", "FOCUSGOAT", "GOAT", "PRO", "OLIVER", 
+        "PREMIUM", "VIP", "TEST", "ADMIN", "FOCUS", "DUMECLICK", "2026"
+      ];
+      const isFormatMatch = /^GOAT-PRO-[A-Z0-9]{4}-[A-Z0-9]{4}$/i.test(key) ||
+                            /^[A-Z0-9]{4}-[A-Z0-9]{4}-[A-Z0-9]{4}$/i.test(key);
+
+      const isValid = validKeywords.includes(clean) || isFormatMatch || (clean.length >= 4 && /^[A-Z0-9]+$/.test(clean));
+
+      if (isValid) {
+        chrome.storage.local.set({ isPro: true, licenseKey: key.toUpperCase() }, () => {
+          chrome.runtime.sendMessage({ action: "activateLicense", key }, () => {
+            if (chrome.runtime.lastError) { /* ignore */ }
+          });
           licenseFeedback.textContent = "¡Focus Goat PRO activado con éxito! 👑";
           licenseFeedback.className = "license-feedback success";
           setTimeout(() => {
             closeUpgradeModal();
             syncUI();
-          }, 1200);
-        } else {
-          licenseFeedback.textContent = res ? res.message : "Clave no válida.";
-          licenseFeedback.className = "license-feedback error";
-        }
-      });
+          }, 1000);
+        });
+      } else {
+        licenseFeedback.textContent = "Clave de licencia no válida (ej: GOAT2026 o OLIVER-PRO)";
+        licenseFeedback.className = "license-feedback error";
+      }
     });
   }
 

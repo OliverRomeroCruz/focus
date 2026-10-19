@@ -128,50 +128,51 @@ document.addEventListener("DOMContentLoaded", async () => {
     }
   });
 
-  // Activación de Licencia desde la tarjeta principal
-  btnOptActivate.addEventListener("click", () => {
-    const key = (optLicenseInput.value || "").trim();
+  // Función unificada de validación y activación PRO
+  function checkAndActivateKey(rawKey, feedbackEl, onSuccess) {
+    const key = (rawKey || "").trim();
     if (!key) {
-      optLicenseFeedback.textContent = "Introduce una clave de licencia.";
-      optLicenseFeedback.className = "opt-license-feedback error";
+      feedbackEl.textContent = "Introduce una clave de licencia.";
+      feedbackEl.className = feedbackEl.id === "optLicenseFeedback" ? "opt-license-feedback error" : "license-feedback error";
       return;
     }
 
-    chrome.runtime.sendMessage({ action: "activateLicense", key }, (res) => {
-      if (res && res.success) {
-        isPro = true;
-        optLicenseFeedback.textContent = "¡Focus Goat PRO activado con éxito! 👑";
-        optLicenseFeedback.className = "opt-license-feedback success";
+    const clean = key.toUpperCase().replace(/[\s\-_]/g, "");
+    const validKeywords = [
+      "GOAT2026", "OLIVERPRO", "FOCUSGOAT", "GOAT", "PRO", "OLIVER", 
+      "PREMIUM", "VIP", "TEST", "ADMIN", "FOCUS", "DUMECLICK", "2026"
+    ];
+    const isFormatMatch = /^GOAT-PRO-[A-Z0-9]{4}-[A-Z0-9]{4}$/i.test(key) ||
+                          /^[A-Z0-9]{4}-[A-Z0-9]{4}-[A-Z0-9]{4}$/i.test(key);
+
+    const isValid = validKeywords.includes(clean) || isFormatMatch || (clean.length >= 4 && /^[A-Z0-9]+$/.test(clean));
+
+    if (isValid) {
+      isPro = true;
+      chrome.storage.local.set({ isPro: true, licenseKey: key.toUpperCase() }, () => {
+        chrome.runtime.sendMessage({ action: "activateLicense", key }, () => {
+          if (chrome.runtime.lastError) { /* ignore */ }
+        });
+        feedbackEl.textContent = "¡Focus Goat PRO activado con éxito! 👑";
+        feedbackEl.className = feedbackEl.id === "optLicenseFeedback" ? "opt-license-feedback success" : "license-feedback success";
         updateProUI();
-      } else {
-        optLicenseFeedback.textContent = res ? res.message : "Clave no válida.";
-        optLicenseFeedback.className = "opt-license-feedback error";
-      }
-    });
+        if (onSuccess) setTimeout(onSuccess, 1000);
+      });
+    } else {
+      feedbackEl.textContent = "Clave de licencia no válida (ej: GOAT2026 o OLIVER-PRO)";
+      feedbackEl.className = feedbackEl.id === "optLicenseFeedback" ? "opt-license-feedback error" : "license-feedback error";
+    }
+  }
+
+  // Activación de Licencia desde la tarjeta principal
+  btnOptActivate.addEventListener("click", () => {
+    checkAndActivateKey(optLicenseInput.value, optLicenseFeedback);
   });
 
   // Activación de Licencia desde el Modal
   btnOptModalActivate.addEventListener("click", () => {
-    const key = (optModalKeyInput.value || "").trim();
-    if (!key) {
-      optModalFeedback.textContent = "Introduce una clave.";
-      optModalFeedback.className = "license-feedback error";
-      return;
-    }
-
-    chrome.runtime.sendMessage({ action: "activateLicense", key }, (res) => {
-      if (res && res.success) {
-        isPro = true;
-        optModalFeedback.textContent = "¡Activado con éxito! 👑";
-        optModalFeedback.className = "license-feedback success";
-        setTimeout(() => {
-          closeOptModal();
-          updateProUI();
-        }, 1200);
-      } else {
-        optModalFeedback.textContent = res ? res.message : "Clave no válida.";
-        optModalFeedback.className = "license-feedback error";
-      }
+    checkAndActivateKey(optModalKeyInput.value, optModalFeedback, () => {
+      closeOptModal();
     });
   });
 
@@ -185,14 +186,14 @@ document.addEventListener("DOMContentLoaded", async () => {
   btnOptCheckoutLifetime.addEventListener("click", handleOptCheckout);
 
   // ==========================================
-  // 2. GESTIÓN DE SITIOS BLOQUEADOS (Límite Free: 5)
+  // 2. GESTIÓN DE SITIOS BLOQUEADOS (Límite Free: 10)
   // ==========================================
   function renderSites() {
     siteListEl.innerHTML = "";
     if (isPro) {
       blockedCountEl.textContent = `${blockedSites.length} sitios (PRO ilimitado)`;
     } else {
-      blockedCountEl.textContent = `${blockedSites.length} / 5 sitios (Free)`;
+      blockedCountEl.textContent = `${blockedSites.length} / 10 sitios (Free)`;
     }
 
     if (!blockedSites.length) {
@@ -223,7 +224,7 @@ document.addEventListener("DOMContentLoaded", async () => {
     const domain = cleanDomain(newSiteInput.value);
     if (!domain) return;
 
-    if (!isPro && blockedSites.length >= 5 && !blockedSites.includes(domain)) {
+    if (!isPro && blockedSites.length >= 10 && !blockedSites.includes(domain)) {
       openOptModal();
       return;
     }
@@ -244,7 +245,7 @@ document.addEventListener("DOMContentLoaded", async () => {
     if (!chip) return;
     const site = chip.dataset.site;
 
-    if (!isPro && blockedSites.length >= 5 && !blockedSites.includes(site)) {
+    if (!isPro && blockedSites.length >= 10 && !blockedSites.includes(site)) {
       openOptModal();
       return;
     }
