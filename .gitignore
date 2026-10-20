@@ -6,4 +6,5 @@ Thumbs.db
 .env.local
 push.bat
 push_result.txt
+*.zip
 
