@@ -860,28 +860,58 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
     return true;
   }
 
-  // Activar Licencia PRO
+  // Activar Licencia PRO (Gumroad API + Clave Maestra Amigos)
   if (request.action === "activateLicense") {
     const rawKey = (request.key || "").trim();
     const clean = rawKey.toUpperCase().replace(/[\s\-_]/g, "");
 
-    const validKeywords = [
-      "GOAT2026", "OLIVERPRO", "FOCUSGOAT", "GOAT", "PRO", "OLIVER", 
-      "PREMIUM", "VIP", "TEST", "ADMIN", "FOCUS", "DUMECLICK", "2026"
-    ];
-
-    const isFormatMatch = /^GOAT-PRO-[A-Z0-9]{4}-[A-Z0-9]{4}$/i.test(rawKey) ||
-                          /^[A-Z0-9]{4}-[A-Z0-9]{4}-[A-Z0-9]{4}$/i.test(rawKey);
-
-    const isValid = validKeywords.includes(clean) || isFormatMatch || (clean.length >= 4 && /^[A-Z0-9]+$/.test(clean));
-
-    if (isValid) {
-      chrome.storage.local.set({ isPro: true, licenseKey: rawKey.toUpperCase() }).then(() => {
-        sendResponse({ success: true, isPro: true });
+    // 1. Clave maestra VIP / Colegas
+    const masterClean = "DUMECLICK2026COLEGASAMIGOS";
+    if (clean === masterClean) {
+      chrome.storage.local.set({ isPro: true, licenseKey: "DumeClick2026_ColegasAmigos" }).then(() => {
+        sendResponse({ success: true, isPro: true, isMaster: true });
       });
-    } else {
-      sendResponse({ success: false, message: "Clave de licencia no válida." });
+      return true;
     }
+
+    // 2. Verificación de Licencia de Gumroad (formato estándar de 32 caracteres)
+    const isGumroadFormat = /^([A-F0-9]{8}-[A-F0-9]{8}-[A-F0-9]{8}-[A-F0-9]{8})$/i.test(rawKey) ||
+                            (clean.length === 32 && /^[A-F0-9]{32}$/i.test(clean));
+
+    if (!isGumroadFormat) {
+      sendResponse({ success: false, message: "Clave de licencia no válida." });
+      return true;
+    }
+
+    // Consultar en tiempo real con la API de Gumroad
+    fetch("https://api.gumroad.com/v2/licenses/verify", {
+      method: "POST",
+      headers: { "Content-Type": "application/x-www-form-urlencoded" },
+      body: new URLSearchParams({
+        product_permalink: "focusgoat",
+        license_key: rawKey
+      })
+    })
+      .then((r) => r.json())
+      .then((data) => {
+        if (data && data.success) {
+          chrome.storage.local.set({ isPro: true, licenseKey: rawKey.toUpperCase() }).then(() => {
+            sendResponse({ success: true, isPro: true });
+          });
+        } else {
+          sendResponse({ 
+            success: false, 
+            message: (data && data.message) || "Clave no encontrada en Gumroad o caducada." 
+          });
+        }
+      })
+      .catch((err) => {
+        // Si hay fallo de red puntual pero el formato de clave de Gumroad es exacto
+        chrome.storage.local.set({ isPro: true, licenseKey: rawKey.toUpperCase() }).then(() => {
+          sendResponse({ success: true, isPro: true, offlineVerified: true });
+        });
+      });
+
     return true;
   }
 

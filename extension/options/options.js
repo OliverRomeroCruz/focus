@@ -437,31 +437,28 @@ document.addEventListener("DOMContentLoaded", async () => {
       return;
     }
 
-    const clean = key.toUpperCase().replace(/[\s\-_]/g, "");
-    const validKeywords = [
-      "GOAT2026", "OLIVERPRO", "FOCUSGOAT", "GOAT", "PRO", "OLIVER", 
-      "PREMIUM", "VIP", "TEST", "ADMIN", "FOCUS", "DUMECLICK", "2026"
-    ];
-    const isFormatMatch = /^GOAT-PRO-[A-Z0-9]{4}-[A-Z0-9]{4}$/i.test(key) ||
-                          /^[A-Z0-9]{4}-[A-Z0-9]{4}-[A-Z0-9]{4}$/i.test(key);
+    feedbackEl.textContent = "Verificando clave...";
+    feedbackEl.className = feedbackEl.id === "optLicenseFeedback" ? "opt-license-feedback" : "license-feedback";
 
-    const isValid = validKeywords.includes(clean) || isFormatMatch || (clean.length >= 4 && /^[A-Z0-9]+$/.test(clean));
+    chrome.runtime.sendMessage({ action: "activateLicense", key }, (res) => {
+      if (chrome.runtime.lastError) {
+        feedbackEl.textContent = "Error al conectar con el servicio de licencias.";
+        feedbackEl.className = feedbackEl.id === "optLicenseFeedback" ? "opt-license-feedback error" : "license-feedback error";
+        return;
+      }
 
-    if (isValid) {
-      isPro = true;
-      chrome.storage.local.set({ isPro: true, licenseKey: key.toUpperCase() }, () => {
-        chrome.runtime.sendMessage({ action: "activateLicense", key }, () => {
-          if (chrome.runtime.lastError) { /* ignore */ }
-        });
+      if (res && res.success) {
+        isPro = true;
+        updateProUI();
+        renderSites();
         feedbackEl.textContent = "¡Focus Goat PRO activado con éxito! 👑";
         feedbackEl.className = feedbackEl.id === "optLicenseFeedback" ? "opt-license-feedback success" : "license-feedback success";
-        updateProUI();
-        if (onSuccess) setTimeout(onSuccess, 1000);
-      });
-    } else {
-      feedbackEl.textContent = "Clave de licencia no válida.";
-      feedbackEl.className = feedbackEl.id === "optLicenseFeedback" ? "opt-license-feedback error" : "license-feedback error";
-    }
+        if (onSuccess) setTimeout(onSuccess, 1200);
+      } else {
+        feedbackEl.textContent = (res && res.message) || "Clave de licencia no válida.";
+        feedbackEl.className = feedbackEl.id === "optLicenseFeedback" ? "opt-license-feedback error" : "license-feedback error";
+      }
+    });
   }
 
   // Activación de Licencia desde la tarjeta principal
