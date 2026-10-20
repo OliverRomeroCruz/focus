@@ -263,7 +263,9 @@ document.addEventListener("DOMContentLoaded", async () => {
     const cleanD = cleanDomainHost(domain);
     return list.some((s) => {
       const cleanS = cleanDomainHost(s);
-      return cleanD === cleanS || cleanD.endsWith("." + cleanS);
+      if (cleanD === cleanS || cleanD.endsWith("." + cleanS)) return true;
+      if ((cleanD === "x.com" || cleanD === "twitter.com") && (cleanS === "x.com" || cleanS === "twitter.com")) return true;
+      return false;
     });
   }
 
@@ -743,8 +745,8 @@ document.addEventListener("DOMContentLoaded", async () => {
         btnBlockCurrent.classList.remove("is-already-blocked");
         setTimeout(updateCurrentSiteButtonUI, 1100);
       } else {
-        // Control límite Free (10 sitios)
-        if (!data.isPro && currentList.length >= 10 && !isDomainInBlockedList(cleanD, currentList)) {
+        // Control límite Free (5 sitios)
+        if (!data.isPro && currentList.length >= 5 && !isDomainInBlockedList(cleanD, currentList)) {
           openUpgradeModal();
           return;
         }

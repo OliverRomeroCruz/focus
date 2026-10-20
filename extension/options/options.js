@@ -108,6 +108,9 @@ document.addEventListener("DOMContentLoaded", async () => {
     if ((c1.includes("youtube.com") || c1.includes("youtu.be")) && (c2.includes("youtube.com") || c2.includes("youtu.be"))) {
       return true;
     }
+    if ((c1 === "x.com" || c1 === "twitter.com") && (c2 === "x.com" || c2 === "twitter.com")) {
+      return true;
+    }
     return false;
   }
 
@@ -482,14 +485,14 @@ document.addEventListener("DOMContentLoaded", async () => {
   btnOptCheckoutLifetime.addEventListener("click", handleOptCheckout);
 
   // ==========================================
-  // 2. GESTIÓN DE SITIOS BLOQUEADOS (Límite Free: 10)
+  // 2. GESTIÓN DE SITIOS BLOQUEADOS (Límite Free: 5)
   // ==========================================
   function renderSites() {
     siteListEl.innerHTML = "";
     if (isPro) {
       blockedCountEl.textContent = `${blockedSites.length} sitios (PRO ilimitado)`;
     } else {
-      blockedCountEl.textContent = `${blockedSites.length} / 10 sitios (Free)`;
+      blockedCountEl.textContent = `${blockedSites.length} / 5 sitios (Free)`;
     }
 
     if (!blockedSites.length) {
@@ -525,7 +528,7 @@ document.addEventListener("DOMContentLoaded", async () => {
     const domain = cleanDomain(newSiteInput.value);
     if (!domain) return;
 
-    if (!isPro && blockedSites.length >= 10 && !blockedSites.includes(domain)) {
+    if (!isPro && blockedSites.length >= 5 && !blockedSites.includes(domain)) {
       openOptModal();
       return;
     }
@@ -549,7 +552,7 @@ document.addEventListener("DOMContentLoaded", async () => {
     if (!chip) return;
     const site = chip.dataset.site;
 
-    if (!isPro && blockedSites.length >= 10 && !blockedSites.includes(site)) {
+    if (!isPro && blockedSites.length >= 5 && !blockedSites.includes(site)) {
       openOptModal();
       return;
     }

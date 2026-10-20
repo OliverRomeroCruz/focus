@@ -6,9 +6,9 @@
 const DEFAULT_BLOCKED_SITES = [
   "youtube.com",
   "instagram.com",
-  "tiktok.com",
-  "twitter.com",
-  "x.com"
+  "twitch.tv",
+  "x.com",
+  "tiktok.com"
 ];
 
 const DEFAULT_QUOTES = [
@@ -70,7 +70,15 @@ chrome.runtime.onInstalled.addListener(async () => {
 
   const updates = {};
   if (data.enabled === undefined) updates.enabled = true;
-  if (!data.blockedSites) updates.blockedSites = DEFAULT_BLOCKED_SITES;
+  if (!data.blockedSites) {
+    updates.blockedSites = DEFAULT_BLOCKED_SITES;
+  } else if (Array.isArray(data.blockedSites)) {
+    const oldSites = ["youtube.com", "instagram.com", "tiktok.com", "twitter.com", "x.com"];
+    const isOldExact = data.blockedSites.length === 5 && oldSites.every(s => data.blockedSites.includes(s));
+    if (isOldExact) {
+      updates.blockedSites = DEFAULT_BLOCKED_SITES;
+    }
+  }
   if (data.cleanSweep === undefined) updates.cleanSweep = true;
   if (data.activeProfile === undefined) updates.activeProfile = "max";
   if (data.blockYoutubeShorts === undefined) updates.blockYoutubeShorts = false;
@@ -156,7 +164,7 @@ chrome.runtime.onStartup.addListener(async () => {
 });
 
 // Limpieza inmediata de rutina de muestra al arrancar el service worker
-chrome.storage.local.get(["routines", "userConfiguredRoutines"], (data) => {
+chrome.storage.local.get(["routines", "userConfiguredRoutines", "blockedSites"], (data) => {
   if (data && data.routines && Array.isArray(data.routines)) {
     let changed = false;
     const clean = data.routines.map(r => {
@@ -168,6 +176,13 @@ chrome.storage.local.get(["routines", "userConfiguredRoutines"], (data) => {
     });
     if (changed) {
       chrome.storage.local.set({ routines: clean });
+    }
+  }
+  if (data && Array.isArray(data.blockedSites)) {
+    const oldSites = ["youtube.com", "instagram.com", "tiktok.com", "twitter.com", "x.com"];
+    const isOldExact = data.blockedSites.length === 5 && oldSites.every(s => data.blockedSites.includes(s));
+    if (isOldExact) {
+      chrome.storage.local.set({ blockedSites: DEFAULT_BLOCKED_SITES });
     }
   }
 });
@@ -482,7 +497,11 @@ function isBlockedUrl(urlStr, blockedSites) {
     return blockedSites.some((site) => {
       const cleanSite = cleanDomainHost(site);
       if (!cleanSite) return false;
-      return host === cleanSite || host.endsWith("." + cleanSite);
+      if (host === cleanSite || host.endsWith("." + cleanSite)) return true;
+      if ((cleanSite === "x.com" || cleanSite === "twitter.com") && (host === "x.com" || host === "twitter.com" || host.endsWith(".x.com") || host.endsWith(".twitter.com"))) {
+        return true;
+      }
+      return false;
     });
   } catch (e) {
     return false;
@@ -804,12 +823,12 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
       const current = res.blockedSites || [];
       const clean = request.domain.toLowerCase().trim();
 
-      // Control límite Free (máximo 10 sitios)
-      if (!res.isPro && current.length >= 10 && !current.includes(clean)) {
+      // Control límite Free (máximo 5 sitios)
+      if (!res.isPro && current.length >= 5 && !current.includes(clean)) {
         sendResponse({ 
           success: false, 
           isLimitReached: true, 
-          message: "Límite de 10 sitios en versión Free alcanzado. Pasa a Focus Goat PRO para sitios ilimitados." 
+          message: "Límite de 5 sitios en versión Free alcanzado. Pasa a Focus Goat PRO para sitios ilimitados." 
         });
         return;
       }
