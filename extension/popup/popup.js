@@ -842,10 +842,7 @@ document.addEventListener("DOMContentLoaded", async () => {
   }
 
   function handleCheckout() {
-    alert("Redirigiendo a la pasarela de pago segura de Focus Goat PRO...");
-    if (licenseKeyInput) {
-      licenseKeyInput.focus();
-    }
+    chrome.tabs.create({ url: "https://oliverrc8.gumroad.com/l/focusgoat?wanted=true" });
   }
 
   if (btnCheckoutMonthly) btnCheckoutMonthly.addEventListener("click", handleCheckout);

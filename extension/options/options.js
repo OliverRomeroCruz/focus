@@ -478,8 +478,7 @@ document.addEventListener("DOMContentLoaded", async () => {
 
   // Botones checkout en opciones
   function handleOptCheckout() {
-    alert("Redirigiendo a la pasarela de compra segura de Focus Goat PRO...");
-    optModalKeyInput.focus();
+    chrome.tabs.create({ url: "https://oliverrc8.gumroad.com/l/focusgoat?wanted=true" });
   }
   btnOptCheckoutMonthly.addEventListener("click", handleOptCheckout);
   btnOptCheckoutLifetime.addEventListener("click", handleOptCheckout);
