@@ -1305,4 +1305,210 @@ input[type="time"] {
   gap: 0.6rem;
 }
 
+/* ==========================================================================
+   ADAPTACIÓN RESPONSIVA (TABLETS, MÓVILES Y PANTALLAS TÁCTILES)
+   ========================================================================== */
+
+/* 1. TABLETS (769px a 1024px) */
+@media (min-width: 769px) and (max-width: 1024px) {
+  body {
+    padding: 2rem 1.5rem;
+  }
+
+  .options-layout {
+    max-width: 760px;
+    gap: 1.75rem;
+  }
+
+  .pro-settings-grid {
+    grid-template-columns: 1fr 1fr;
+    gap: 1rem;
+  }
+
+  .stats-overview-grid {
+    grid-template-columns: repeat(4, 1fr);
+    gap: 0.75rem;
+  }
+}
+
+/* 2. MÓVILES Y PANTALLAS COMPACTAS (<= 768px) */
+@media (max-width: 768px) {
+  body {
+    padding: max(1rem, env(safe-area-inset-top)) max(0.85rem, env(safe-area-inset-right)) max(1rem, env(safe-area-inset-bottom)) max(0.85rem, env(safe-area-inset-left));
+  }
+
+  .options-layout {
+    gap: 1.25rem;
+  }
+
+  .options-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.6rem;
+    padding-bottom: 1rem;
+  }
+
+  .header-status {
+    font-size: 0.7rem;
+  }
+
+  .card-section {
+    padding: 1.25rem 1rem;
+    border-radius: 14px;
+  }
+
+  .goat-rank-hero {
+    gap: 0.85rem;
+  }
+
+  .goat-avatar-wrap {
+    width: 56px;
+    height: 56px;
+  }
+
+  .goat-avatar-icon {
+    font-size: 1.8rem;
+  }
+
+  .goat-rank-title-row h2 {
+    font-size: 1.1rem;
+  }
+
+  .pro-card-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.75rem;
+  }
+
+  .pro-card-actions {
+    width: 100%;
+  }
+
+  .btn-upgrade-glow, .btn-deactivate-pro {
+    width: 100%;
+    text-align: center;
+    padding: 0.65rem 1rem;
+  }
+
+  .pro-setting-item {
+    padding: 0.85rem;
+    gap: 0.65rem;
+  }
+
+  .setting-controls {
+    flex-shrink: 0;
+  }
+
+  .site-list {
+    grid-template-columns: 1fr;
+  }
+
+  .add-site-form, .add-quote-form {
+    flex-direction: column;
+  }
+
+  .add-site-form input, .add-quote-form input {
+    width: 100%;
+  }
+
+  .add-site-form button, .add-quote-form button {
+    width: 100%;
+    padding: 0.75rem;
+  }
+
+  .routine-item {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.75rem;
+  }
+
+  .routine-actions {
+    width: 100%;
+    justify-content: flex-end;
+  }
+
+  .day-selector {
+    justify-content: space-between;
+  }
+
+  .day-btn {
+    flex: 1;
+    min-width: 32px;
+    height: 34px;
+    font-size: 0.7rem;
+  }
+
+  .profile-tab, .mode-tab {
+    min-width: 100%;
+    text-align: center;
+  }
+
+  .upgrade-modal-card {
+    max-width: 92vw;
+    padding: 1.35rem 1.15rem;
+  }
+}
+
+/* 3. MÓVILES PEQUEÑOS (<= 420px) */
+@media (max-width: 420px) {
+  .brand-name {
+    font-size: 1.2rem;
+  }
+
+  .brand-tag {
+    font-size: 0.6rem;
+  }
+
+  .card-section {
+    padding: 1rem 0.85rem;
+  }
+
+  .stats-overview-grid {
+    grid-template-columns: 1fr 1fr;
+    gap: 0.5rem;
+  }
+
+  .stat-card {
+    padding: 0.65rem 0.65rem;
+    gap: 0.5rem;
+  }
+
+  .stat-text strong {
+    font-size: 0.95rem;
+  }
+
+  .stat-text span {
+    font-size: 0.65rem;
+  }
+
+  .pro-setting-item {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 0.6rem;
+  }
+
+  .setting-controls {
+    justify-content: space-between;
+    width: 100%;
+    border-top: 1px dashed rgba(17, 17, 15, 0.08);
+    padding-top: 0.5rem;
+  }
+
+  .license-form {
+    flex-direction: column;
+  }
+
+  .license-form button {
+    width: 100%;
+  }
+
+  .bar-val-text {
+    font-size: 0.52rem;
+  }
+
+  .bar-day-name {
+    font-size: 0.6rem;
+  }
+}
+
 
