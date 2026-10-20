@@ -247,8 +247,61 @@ document.addEventListener("DOMContentLoaded", async () => {
       if (changes.sessionActive !== undefined || changes.sessionPaused !== undefined || changes.sessionEndTime !== undefined) {
         syncTimerState();
       }
+      if (changes.blockedSites !== undefined) {
+        updateCurrentSiteButtonUI();
+      }
     }
   });
+
+  // Normalizar y comprobar si un dominio está en la lista de bloqueo
+  function cleanDomainHost(d) {
+    return (d || "").trim().toLowerCase().replace(/^https?:\/\//, "").replace(/^www\./, "").replace(/\/.*$/, "");
+  }
+
+  function isDomainInBlockedList(domain, list) {
+    if (!domain || !list || !Array.isArray(list)) return false;
+    const cleanD = cleanDomainHost(domain);
+    return list.some((s) => {
+      const cleanS = cleanDomainHost(s);
+      return cleanD === cleanS || cleanD.endsWith("." + cleanS);
+    });
+  }
+
+  // Actualizar apariencia e icono del botón de sitio actual según si ya está bloqueado o no
+  async function updateCurrentSiteButtonUI() {
+    if (!currentTabDomain || !btnBlockCurrent) return;
+
+    try {
+      const data = await chrome.storage.local.get(["blockedSites", "sessionActive"]);
+      const list = data.blockedSites || [];
+      const isAlreadyBlocked = isDomainInBlockedList(currentTabDomain, list);
+
+      if (isAlreadyBlocked) {
+        btnBlockCurrent.classList.add("is-already-blocked");
+        btnBlockCurrent.innerHTML = `
+          <svg class="block-current-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+            <path d="m9 12 2 2 4-4"/>
+          </svg>
+          <span class="block-text-normal">✓ ${currentTabDomain} en lista negra</span>
+          <span class="block-text-hover-remove">✕ Quitar ${currentTabDomain} de la lista</span>
+        `;
+        btnBlockCurrent.title = data.sessionActive
+          ? `${currentTabDomain} está en tu lista de bloqueo (Bloqueado activamente en esta sesión). Haz clic para quitarlo.`
+          : `${currentTabDomain} está en tu lista de bloqueo (Se bloqueará automáticamente cuando inicies una sesión). Haz clic para quitarlo.`;
+      } else {
+        btnBlockCurrent.classList.remove("is-already-blocked");
+        btnBlockCurrent.innerHTML = `
+          <svg class="block-current-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <circle cx="12" cy="12" r="10"/>
+            <line x1="4.93" y1="4.93" x2="19.07" y2="19.07"/>
+          </svg>
+          <span class="block-text-normal">Bloquear ${currentTabDomain}</span>
+        `;
+        btnBlockCurrent.title = `Haz clic para añadir ${currentTabDomain} a tu lista de sitios bloqueados.`;
+      }
+    } catch (e) {}
+  }
 
   // 3. Obtener dominio actual para botón de bloqueo rápido
   try {
@@ -256,11 +309,13 @@ document.addEventListener("DOMContentLoaded", async () => {
     if (activeTab && activeTab.url) {
       const parsed = new URL(activeTab.url);
       if (parsed.protocol === "http:" || parsed.protocol === "https:") {
-        currentTabDomain = parsed.hostname.replace(/^www\./, "");
-        blockCurrentText.textContent = `Bloquear ${currentTabDomain}`;
+        currentTabDomain = cleanDomainHost(parsed.hostname);
+        await updateCurrentSiteButtonUI();
       } else {
         btnBlockCurrent.style.display = "none";
       }
+    } else {
+      btnBlockCurrent.style.display = "none";
     }
   } catch (e) {
     btnBlockCurrent.style.display = "none";
@@ -664,23 +719,48 @@ document.addEventListener("DOMContentLoaded", async () => {
     }
   });
 
-  // Bloquear pestaña actual con límite de 10 sitios
-  btnBlockCurrent.addEventListener("click", () => {
+  // Alternar bloqueo de pestaña actual (Añadir o Quitar de lista negra con feedback inteligente)
+  btnBlockCurrent.addEventListener("click", async () => {
     if (!currentTabDomain) return;
 
-    chrome.runtime.sendMessage({ action: "addCurrentSite", domain: currentTabDomain }, (res) => {
-      if (chrome.runtime.lastError) return;
-      if (res && res.success) {
-        blockCurrentText.textContent = `¡${currentTabDomain} bloqueado!`;
-        btnBlockCurrent.style.borderColor = "var(--color-ink)";
-        btnBlockCurrent.style.color = "var(--color-ink)";
-      } else if (res && res.isLimitReached) {
-        blockCurrentText.textContent = "Límite Free (10 sitios)";
-        openUpgradeModal();
+    try {
+      const data = await chrome.storage.local.get(["blockedSites", "isPro"]);
+      const currentList = data.blockedSites || [];
+      const cleanD = cleanDomainHost(currentTabDomain);
+      const isAlreadyBlocked = isDomainInBlockedList(cleanD, currentList);
+
+      if (isAlreadyBlocked) {
+        // Quitar de la lista de bloqueo
+        const nextList = currentList.filter((s) => {
+          const cleanS = cleanDomainHost(s);
+          return cleanS !== cleanD && !cleanD.endsWith("." + cleanS);
+        });
+        await chrome.storage.local.set({ blockedSites: nextList });
+        chrome.runtime.sendMessage({ action: "siteRemoved", domain: cleanD }, () => {
+          if (chrome.runtime.lastError) {}
+        });
+        btnBlockCurrent.innerHTML = `<span>✓ ¡${currentTabDomain} quitado de la lista!</span>`;
+        btnBlockCurrent.classList.remove("is-already-blocked");
+        setTimeout(updateCurrentSiteButtonUI, 1100);
       } else {
-        blockCurrentText.textContent = res ? res.message : "Ya bloqueado";
+        // Control límite Free (10 sitios)
+        if (!data.isPro && currentList.length >= 10 && !isDomainInBlockedList(cleanD, currentList)) {
+          openUpgradeModal();
+          return;
+        }
+        // Añadir a la lista de bloqueo
+        const nextList = [...currentList, cleanD];
+        await chrome.storage.local.set({ blockedSites: nextList });
+        chrome.runtime.sendMessage({ action: "sitesUpdated" }, () => {
+          if (chrome.runtime.lastError) {}
+        });
+        btnBlockCurrent.innerHTML = `<span>🛡️ ¡${currentTabDomain} añadido a la lista!</span>`;
+        btnBlockCurrent.classList.add("is-already-blocked");
+        setTimeout(updateCurrentSiteButtonUI, 1100);
       }
-    });
+    } catch (e) {
+      console.warn("Error alternando sitio actual:", e);
+    }
   });
 
   // Abrir opciones

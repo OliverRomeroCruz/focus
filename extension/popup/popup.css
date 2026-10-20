@@ -567,11 +567,35 @@ input:checked + .slider:before {
   font-size: 0.75rem;
   font-weight: 600;
   cursor: pointer;
-  transition: background 0.15s ease;
+  transition: all 0.15s ease;
 }
 
 .btn-block-current:hover {
   background: rgba(255, 110, 84, 0.14);
+}
+
+.btn-block-current.is-already-blocked {
+  background: rgba(16, 185, 129, 0.08);
+  border: 1px solid rgba(16, 185, 129, 0.35);
+  color: #059669;
+}
+
+.btn-block-current.is-already-blocked:hover {
+  background: rgba(239, 68, 68, 0.08);
+  border-color: rgba(239, 68, 68, 0.35);
+  color: #dc2626;
+}
+
+.btn-block-current.is-already-blocked:hover .block-text-normal {
+  display: none;
+}
+
+.btn-block-current.is-already-blocked:hover .block-text-hover-remove {
+  display: inline;
+}
+
+.btn-block-current .block-text-hover-remove {
+  display: none;
 }
 
 /* Footer */

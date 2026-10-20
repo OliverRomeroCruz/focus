@@ -826,6 +826,21 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
     return true;
   }
 
+  // Quitar sitio actual de la lista de bloqueo
+  if (request.action === "removeCurrentSite" && request.domain) {
+    chrome.storage.local.get(["blockedSites"]).then((res) => {
+      const current = res.blockedSites || [];
+      const clean = cleanDomainHost(request.domain);
+      const nextList = current.filter((s) => cleanDomainHost(s) !== clean);
+      chrome.storage.local.set({ blockedSites: nextList }).then(() => {
+        unblockTabsNoLongerBlocked().then(() => {
+          sendResponse({ success: true, sites: nextList });
+        });
+      });
+    });
+    return true;
+  }
+
   // Activar Licencia PRO
   if (request.action === "activateLicense") {
     const rawKey = (request.key || "").trim();
