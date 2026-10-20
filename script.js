@@ -6,86 +6,60 @@
 document.addEventListener('DOMContentLoaded', () => {
   const heroElement = document.querySelector('.hero-frame');
   const video = document.querySelector('.hero-video');
-  const poster = document.querySelector('.hero-poster');
 
   if (!video || !heroElement) return;
 
   const reducedMotionQuery = window.matchMedia('(prefers-reduced-motion: reduce)');
-  let isIntersectingViewport = true;
 
-  // Función segura para reproducir video
-  function playVideo() {
+  // Asegurar atributos requeridos por iOS y navegadores móviles
+  video.muted = true;
+  video.defaultMuted = true;
+  video.playsInline = true;
+  video.setAttribute('playsinline', '');
+  video.setAttribute('webkit-playsinline', '');
+
+  // Función robusta de reproducción
+  function tryPlayVideo() {
     if (reducedMotionQuery.matches) {
       video.pause();
-      if (poster) poster.style.display = 'block';
       return;
     }
 
-    if (video.paused && isIntersectingViewport) {
-      const playPromise = video.play();
-      if (playPromise !== undefined) {
-        playPromise.catch((err) => {
-          // Autoplay silenciado habitualmente permitido, capturamos cualquier política estricta
-          console.warn('Reproducción de video diferida por política del navegador:', err);
-        });
-      }
-    }
-  }
-
-  // Función para pausar video
-  function pauseVideo() {
-    if (!video.paused) {
-      video.pause();
-    }
-  }
-
-  // 1. Detección de preferencia de movimiento reducido (prefers-reduced-motion)
-  function handleReducedMotionChange(e) {
-    if (e.matches) {
-      pauseVideo();
-      if (poster) poster.style.display = 'block';
-    } else {
-      if (poster) poster.style.display = 'none';
-      if (isIntersectingViewport) {
-        playVideo();
-      }
-    }
-  }
-
-  if (reducedMotionQuery.matches) {
-    pauseVideo();
-    if (poster) poster.style.display = 'block';
-  } else {
-    playVideo();
-  }
-
-  reducedMotionQuery.addEventListener('change', handleReducedMotionChange);
-
-  // 2. IntersectionObserver para pausar fuera del viewport y reanudar al volver
-  if ('IntersectionObserver' in window) {
-    const observer = new IntersectionObserver((entries) => {
-      entries.forEach((entry) => {
-        isIntersectingViewport = entry.isIntersecting;
-        if (entry.isIntersecting) {
-          if (!reducedMotionQuery.matches) {
-            playVideo();
-          }
-        } else {
-          pauseVideo();
-        }
+    const playPromise = video.play();
+    if (playPromise !== undefined) {
+      playPromise.catch(() => {
+        // En móviles donde el navegador bloquea autoplay estricto sin gesto táctil,
+        // iniciamos la reproducción al primer toque o toque en pantalla
+        const unlock = () => {
+          video.play().catch(() => {});
+          window.removeEventListener('touchstart', unlock);
+          window.removeEventListener('touchend', unlock);
+          window.removeEventListener('click', unlock);
+        };
+        window.addEventListener('touchstart', unlock, { passive: true, once: true });
+        window.addEventListener('touchend', unlock, { passive: true, once: true });
+        window.addEventListener('click', unlock, { once: true });
       });
-    }, {
-      root: null,
-      threshold: 0.15 // Al menos 15% visible para reproducir
-    });
-
-    observer.observe(heroElement);
+    }
   }
 
-  // 3. Respaldo ante fallos de carga en el video
-  video.addEventListener('error', () => {
-    console.info('Usando poster como respaldo visual del video.');
-    if (poster) poster.style.display = 'block';
+  // Reproducir en carga
+  tryPlayVideo();
+
+  // Control de cambio de visibilidad de pestaña
+  document.addEventListener('visibilitychange', () => {
+    if (!document.hidden && !reducedMotionQuery.matches) {
+      tryPlayVideo();
+    }
+  });
+
+  // Detección de preferencia de movimiento reducido (prefers-reduced-motion)
+  reducedMotionQuery.addEventListener('change', (e) => {
+    if (e.matches) {
+      video.pause();
+    } else {
+      tryPlayVideo();
+    }
   });
 
   // 4. Animación Stagger Text (VengeanceUI)
