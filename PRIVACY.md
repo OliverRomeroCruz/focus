@@ -51,4 +51,4 @@ Dado que no operamos servidores centrales ni almacenamos información del usuari
 
 Nos reservamos el derecho de actualizar esta política de privacidad si se introducen nuevas funcionalidades en la extensión. Cualquier cambio será reflejado en este documento con su fecha de actualización correspondiente.
 
-Si tienes alguna pregunta sobre esta política de privacidad o sobre el funcionamiento de Focus Goat, puedes ponerte en contacto a través de GitHub o mediante el correo de contacto facilitado en la ficha oficial de Chrome Web Store.
+Si tienes alguna pregunta sobre esta política de privacidad o sobre el funcionamiento de Focus Goat, puedes ponerte en contacto a través de GitHub o mediante el correo de contacto facilitado en la [ficha oficial de Chrome Web Store](https://chromewebstore.google.com/detail/focus-goat-%E2%80%94-focus-study/lanijjkgnmknlfjnjgfflbpaadhdilmf).

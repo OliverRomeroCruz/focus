@@ -58,7 +58,7 @@
           </div>
           <span class="status-indicator">
             <span class="status-dot"></span>
-            <span data-i18n="status">EXTENSIÓN ACTIVA</span>
+            <span data-i18n="status">DISPONIBLE EN CHROME</span>
           </span>
         </div>
       </header>
@@ -74,12 +74,12 @@
             Bloquea las distracciones, domina tus horas de estudio y desbloquea el verdadero potencial de tu mente. La extensión de Google definitiva para transformar tu concentración en resultados extraordinarios. Tu mejor versión empieza ahora.
           </p>
           <div class="hero-actions">
-            <button type="button" class="hero-button" id="btnOpenInstallModal">
+            <a href="https://chromewebstore.google.com/detail/focus-goat-%E2%80%94-focus-study/lanijjkgnmknlfjnjgfflbpaadhdilmf" target="_blank" rel="noopener noreferrer" class="hero-button" id="btnAddToChrome">
               <span data-i18n="cta">Añadir a Chrome</span>
               <svg class="button-arrow" width="14" height="14" viewBox="0 0 14 14" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
                 <path d="M1.75 7H12.25M12.25 7L7.5 2.25M12.25 7L7.5 11.75" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
               </svg>
-            </button>
+            </a>
             <a href="https://oliverrc8.gumroad.com/l/focusgoat?wanted=true" target="_blank" rel="noopener noreferrer" class="hero-button-pro">
               <span>👑 Focus Goat PRO</span>
             </a>
@@ -90,59 +90,19 @@
       <!-- Borde inferior con telemetría y datos técnicos -->
       <footer class="hero-footer section-copy">
         <div class="telemetry-item">
+          <span class="telemetry-label" data-i18n="storeLabel">Tienda Oficial</span>
+          <a href="https://chromewebstore.google.com/detail/focus-goat-%E2%80%94-focus-study/lanijjkgnmknlfjnjgfflbpaadhdilmf" target="_blank" rel="noopener noreferrer" class="telemetry-value" style="text-decoration: none; color: inherit;" data-i18n="storeStatus">Chrome Web Store ↗</a>
+        </div>
+        <div class="telemetry-item">
           <span class="telemetry-label">Instagram</span>
           <a href="https://instagram.com/dumeclick" target="_blank" rel="noopener noreferrer" class="telemetry-value" style="text-decoration: none; color: inherit;">@dumeclick</a>
         </div>
         <div class="telemetry-item">
-          <span class="telemetry-label">Privacidad</span>
-          <a href="privacy.html" class="telemetry-value" style="text-decoration: none; color: inherit;">Política de Privacidad</a>
-        </div>
-        <div class="telemetry-item">
-          <span class="telemetry-label">Estado</span>
-          <span class="telemetry-value">Chrome Web Store (En revisión)</span>
+          <span class="telemetry-label" data-i18n="privacyLabel">Privacidad</span>
+          <a href="privacy.html" class="telemetry-value" style="text-decoration: none; color: inherit;" data-i18n="privacyLink">Política de Privacidad</a>
         </div>
       </footer>
 
-    </div>
-
-    <!-- Modal Guía de Instalación Rápida -->
-    <div class="install-modal hidden" id="installModal" role="dialog" aria-modal="true" aria-hidden="true">
-      <div class="install-modal-backdrop" id="modalBackdrop"></div>
-      <div class="install-modal-card">
-        <button type="button" class="modal-close" id="btnCloseModal" aria-label="Cerrar modal">&times;</button>
-        <div class="modal-top-row">
-          <img src="media/logo.png" alt="Focus Goat" class="modal-logo-img">
-          <div class="modal-badge">TIENDA OFICIAL</div>
-        </div>
-        <h2 class="modal-title">Instalar Focus Goat</h2>
-        <div class="install-steps">
-          <div class="step-item">
-            <span class="step-number">1</span>
-            <div class="step-content">
-              <strong>Chrome Web Store</strong>
-              <p>La extensión se encuentra actualmente en revisión final por parte de Google y estará disponible en breves días para instalación directa en un clic.</p>
-            </div>
-          </div>
-          <div class="step-item">
-            <span class="step-number">2</span>
-            <div class="step-content">
-              <strong>Versión de Desarrollo / Código</strong>
-              <p>Puedes consultar el código o clonar el repositorio oficial desde GitHub para probarla hoy mismo.</p>
-            </div>
-          </div>
-          <div class="step-item">
-            <span class="step-number">3</span>
-            <div class="step-content">
-              <strong>Acceso Focus Goat PRO</strong>
-              <p>Consigue tu clave de licencia ilimitada en Gumroad para desbloquear blindaje estricto y sitios infinitos.</p>
-            </div>
-          </div>
-        </div>
-        <div class="modal-footer" style="display: flex; gap: 0.75rem; flex-wrap: wrap;">
-          <a href="https://github.com/OliverRomeroCruz/focus" target="_blank" rel="noopener noreferrer" class="modal-action-btn" style="text-decoration: none; text-align: center; flex: 1;">Ver en GitHub</a>
-          <a href="https://oliverrc8.gumroad.com/l/focusgoat?wanted=true" target="_blank" rel="noopener noreferrer" class="modal-action-btn" style="text-decoration: none; text-align: center; background: #ff6e54; color: #fff; flex: 1;">Conseguir PRO</a>
-        </div>
-      </div>
     </div>
   </main>
 

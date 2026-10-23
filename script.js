@@ -67,71 +67,29 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // 5. Selector de idioma (ES / EN)
   initLanguageSwitcher();
-
-  // 6. Modal guía de instalación rápida
-  initInstallModal();
 });
-
-/**
- * Control del modal de instalación de la extensión
- */
-function initInstallModal() {
-  const btnOpen = document.getElementById('btnOpenInstallModal');
-  const modal = document.getElementById('installModal');
-  const btnClose = document.getElementById('btnCloseModal');
-  const backdrop = document.getElementById('modalBackdrop');
-  const btnCopy = document.getElementById('btnCopyPath');
-  const feedback = document.getElementById('copyFeedback');
-
-  if (!btnOpen || !modal) return;
-
-  function openModal() {
-    modal.classList.remove('hidden');
-    modal.setAttribute('aria-hidden', 'false');
-  }
-
-  function closeModal() {
-    modal.classList.add('hidden');
-    modal.setAttribute('aria-hidden', 'true');
-  }
-
-  btnOpen.addEventListener('click', openModal);
-  if (btnClose) btnClose.addEventListener('click', closeModal);
-  if (backdrop) backdrop.addEventListener('click', closeModal);
-
-  document.addEventListener('keydown', (e) => {
-    if (e.key === 'Escape' && !modal.classList.contains('hidden')) {
-      closeModal();
-    }
-  });
-
-  if (btnCopy && feedback) {
-    btnCopy.addEventListener('click', () => {
-      const extPath = 'C:\\Users\\Oliver\\Documents\\antigravity\\3. Desarrollo\\focus\\extension';
-      navigator.clipboard.writeText(extPath).then(() => {
-        feedback.classList.add('is-visible');
-        setTimeout(() => feedback.classList.remove('is-visible'), 2500);
-      }).catch(() => {
-        // Fallback
-        prompt('Copia la ruta de la extensión:', extPath);
-      });
-    });
-  }
-}
 
 /**
  * Diccionario multilingüe para Focus Goat
  */
 const I18N = {
   es: {
-    status: 'EXTENSIÓN ACTIVA',
+    status: 'DISPONIBLE EN CHROME',
     description: 'Bloquea las distracciones, domina tus horas de estudio y desbloquea el verdadero potencial de tu mente. La extensión de Google definitiva para transformar tu concentración en resultados extraordinarios. Tu mejor versión empieza ahora.',
-    cta: 'Añadir a Chrome'
+    cta: 'Añadir a Chrome',
+    storeLabel: 'Tienda Oficial',
+    storeStatus: 'Chrome Web Store ↗',
+    privacyLabel: 'Privacidad',
+    privacyLink: 'Política de Privacidad'
   },
   en: {
-    status: 'EXTENSION ACTIVE',
+    status: 'AVAILABLE ON CHROME',
     description: 'Block every distraction, master your study hours, and unlock your mind’s true potential. The ultimate Google extension designed to turn deep focus into extraordinary results. Your best version starts now.',
-    cta: 'Add to Chrome'
+    cta: 'Add to Chrome',
+    storeLabel: 'Official Store',
+    storeStatus: 'Chrome Web Store ↗',
+    privacyLabel: 'Privacy',
+    privacyLink: 'Privacy Policy'
   }
 };
 
@@ -150,17 +108,17 @@ function initLanguageSwitcher() {
       langButtons.forEach((b) => b.classList.toggle('is-active', b === btn));
       document.documentElement.lang = selected;
 
-      // Actualizar estado del badge
-      const statusEl = document.querySelector('[data-i18n="status"]');
-      if (statusEl) statusEl.textContent = I18N[selected].status;
-
-      // Actualizar botón CTA
-      const ctaEl = document.querySelector('[data-i18n="cta"]');
-      if (ctaEl) ctaEl.textContent = I18N[selected].cta;
+      // Actualizar todos los elementos con data-i18n (excepto descripción que se anima por separado)
+      document.querySelectorAll('[data-i18n]').forEach((el) => {
+        const key = el.dataset.i18n;
+        if (I18N[selected][key] && key !== 'description') {
+          el.textContent = I18N[selected][key];
+        }
+      });
 
       // Actualizar descripción y re-animar con stagger
       const descEl = document.querySelector('[data-i18n="description"]');
-      if (descEl) {
+      if (descEl && I18N[selected].description) {
         descEl.textContent = I18N[selected].description;
         applyStaggerToElement(descEl);
       }

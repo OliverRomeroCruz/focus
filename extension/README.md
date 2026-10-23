@@ -2,6 +2,10 @@
 
 Extensión para blindar tu concentración, bloquear páginas distractoras durante tus horas de estudio, programar rutinas semanales y mantenerte motivado con dosis de alto impacto.
 
+> 🚀 **¡Ya disponible en Chrome Web Store!**  
+> Puedes instalarla directamente con un solo clic desde la tienda oficial:  
+> 👉 [**Instalar Focus Goat en Google Chrome Web Store**](https://chromewebstore.google.com/detail/focus-goat-%E2%80%94-focus-study/lanijjkgnmknlfjnjgfflbpaadhdilmf)
+
 ---
 
 ## 🚀 Cómo instalar la extensión en Google Chrome (Modo Desarrollador)
